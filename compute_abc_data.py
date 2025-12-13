@@ -31,6 +31,7 @@ def compute_abc_data(args : argparse.Namespace) -> None:
         N=size,
         nb_templates=args.num_templates,
         seed = 0,
+        template_idx=args.template_index
     )
 
     abc_samples = (
@@ -40,22 +41,31 @@ def compute_abc_data(args : argparse.Namespace) -> None:
     )
 
 
+    print("----------------------------------------------------------------------------------------------------")
+    print("A few samples from the ABC dataset  : ")
+    for sentence in abc_samples.sentences[:5]:
+        print(sentence)
+    print("----------------------------------------------------------------------------------------------------")
+
+
     #############################################################################################
     # Finds potential checkpoints
     #############################################################################################
 
-    potential_filepaths = glob(f"{args.abc_data_filepath}_*", root_dir = args.checkpoints_folder)
+    full_path = f"{args.abc_data_path}_{args.prompt_type}"
+    full_path += f"_T={args.template_index}" if args.num_templates == 1 else f"_N={args.num_templates}"
+    potential_filepaths = glob(f"{full_path}_*", root_dir = args.checkpoints_folder)
 
     if potential_filepaths:
-        abc_data_filepath = os.path.join(args.checkpoints_folder, potential_filepaths[0])
-        abc_data = torch.load(abc_data_filepath, map_location = device)
+        abc_data_path = os.path.join(args.checkpoints_folder, potential_filepaths[0])
+        abc_data = torch.load(abc_data_path, map_location = device)
 
-        print(f"Successfully loaded previous ABC data from {abc_data_filepath}")
+        print(f"Successfully loaded previous ABC data from {abc_data_path}")
 
         last_sample_index = abc_data["last_sample_index"]
 
     else:
-        abc_data_filepath = os.path.join(args.checkpoints_folder, f"{args.abc_data_filepath}_0.pth")
+        abc_data_path = os.path.join(args.checkpoints_folder, f"{full_path}_0.pth")
         abc_data = None
         last_sample_index = 0
 
@@ -65,6 +75,9 @@ def compute_abc_data(args : argparse.Namespace) -> None:
     #############################################################################################
 
     seq_len = abc_samples.toks.shape[1]
+
+    print("----------------------------------------------------------------------------------------------------")
+    print("Sequence length : ", seq_len)
 
     abc_tokens = abc_samples.toks.long()[last_sample_index:size, :seq_len - 1].to(device)
 
@@ -87,6 +100,7 @@ def compute_abc_data(args : argparse.Namespace) -> None:
     #############################################################################################
 
     model.accumulate()
+    print("----------------------------------------------------------------------------------------------------")
     print(f"Evaluating the model on the ABC dataset from index {last_sample_index} to {size}")
     with torch.no_grad():
 
@@ -101,7 +115,7 @@ def compute_abc_data(args : argparse.Namespace) -> None:
             current_sample_index += inputs.size(0)
 
             if current_sample_index % args.checkpoint_steps == 0:
-                abc_data, abc_data_filepath = model.update_accumulation_data(current_sample_index, abc_data_filepath, abc_data)
+                abc_data, abc_data_path = model.update_accumulation_data(current_sample_index, abc_data_path, abc_data)
 
 
     
@@ -110,11 +124,12 @@ def compute_abc_data(args : argparse.Namespace) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Computes the sum of outputs of the gpt2 model over the ABC dataset")
     parser.add_argument("--checkpoints_folder", type = str, default = "checkpoints", help = "Checkpoints folder")
-    parser.add_argument("-a", "--abc_data_filepath", type = str, default = "abc_data", help = "Path to the saved sums over the ABC dataset")
+    parser.add_argument("-a", "--abc_data_path", type = str, default = "abc_data", help = "Path to the saved sums over the ABC dataset")
     parser.add_argument("-s", "--size", type = int, default = 8192, help = "Size of the ABC dataset (power of 2 is simpler for alignment with batch sizes)")
     parser.add_argument("-c", "--checkpoint_steps", type = int, default = 1024, help = "Number of samples to evaluate between each checkpoint")
     parser.add_argument("-b", "--batch_size", type = int, default = 512, help = "Size of the batch (can be as large as vram allows as this is eval mode)")
-    parser.add_argument("-t", "--num_templates", type = int, default = 15, help = "Number of different templates to use.")
+    parser.add_argument("-t", "--num_templates", type = int, default = 1, help = "Number of different templates to use.")
+    parser.add_argument("-i", "--template_index", type = int, default = 0, help = "Index of the template to use (if only one template is selected).")
     parser.add_argument("-p", "--prompt_type", type = str, default = 'BABA', help = "Templates to use.")
 
 

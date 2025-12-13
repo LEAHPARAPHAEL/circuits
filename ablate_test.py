@@ -23,6 +23,7 @@ def test_ioi_circuit(args):
         N=size,
         nb_templates=args.num_templates,
         seed = 0,
+        template_idx=args.template_index
     )
 
     print("----------------------------------------------------------------------------------------------------")
@@ -35,15 +36,13 @@ def test_ioi_circuit(args):
     # Loads the sums over the ABC dataset.
     #############################################################################################
 
-    potential_filepaths = glob(f"{args.abc_data_path}_*", root_dir = args.checkpoints_folder)
+    full_path = f"{args.abc_data_path}_{args.prompt_type}"
+    full_path += f"_T={args.template_index}" if args.num_templates == 1 else f"_N={args.num_templates}"
+    potential_filepaths = glob(f"{full_path}_*", root_dir = args.checkpoints_folder)
 
     if potential_filepaths:
         abc_data_path = os.path.join(args.checkpoints_folder, potential_filepaths[0])
-        abc_data = torch.load(abc_data_path, map_location = device)
-
         print(f"Successfully loaded previous ABC means from {abc_data_path}")
-
-        last_sample_index = abc_data["last_sample_index"]
 
     else:
         raise(FileNotFoundError("No ABC data file was found ! One is required to perform ablation. Please execute" \
@@ -56,6 +55,9 @@ def test_ioi_circuit(args):
 
     seq_len = ioi_samples.toks.shape[1]
 
+    print("----------------------------------------------------------------------------------------------------")
+    print("Sequence length : ", seq_len)
+
     ioi_inputs = ioi_samples.toks.long()[:, :seq_len - 1]
 
     ioi_labels = ioi_samples.toks.long()[:, seq_len - 1]
@@ -63,7 +65,6 @@ def test_ioi_circuit(args):
     ioi_dataset = TensorDataset(ioi_inputs, ioi_labels)
 
     loader = DataLoader(ioi_dataset, batch_size = args.batch_size, shuffle = False)
-
 
     #############################################################################################
     # Builds the model
@@ -73,7 +74,7 @@ def test_ioi_circuit(args):
     model.to(device)
     model.eval()
 
-    criterion = nn.CrossEntropyLoss()
+    criterion = nn.CrossEntropyLoss(reduction = "sum")
 
 
     #############################################################################################
@@ -84,8 +85,8 @@ def test_ioi_circuit(args):
     print(f"Evaluating the entire GPT2 model on the IOI dataset with template {args.prompt_type} and {size} samples.")
 
     total_loss = 0
+    total_correct_preds = 0
     for batch_idx, (batch_inputs, batch_labels) in enumerate(loader):
-
         with torch.no_grad():
 
             inputs = batch_inputs.to(device)
@@ -98,14 +99,21 @@ def test_ioi_circuit(args):
             next_token_logits = all_logits[:, -1, :]
 
             loss = criterion(next_token_logits, labels)
+            current_loss = loss.item()
+            total_loss += current_loss
 
-            total_loss += loss.item()
+            predictions = next_token_logits.argmax(dim=-1)
+
+            correct_predictions = (predictions == labels).sum().item()
+
+            total_correct_preds += correct_predictions
 
             if ((batch_idx + 1) * args.batch_size) % args.test_steps == 0:
-                print(f"Average loss for the entire model after {(batch_idx + 1) * args.batch_size} samples : {total_loss / (batch_idx + 1):.4f}")
+                print(f"GPT2 after {(batch_idx + 1) * args.batch_size} samples | Loss : {current_loss / inputs.size(0):.4f} | Accuracy : {correct_predictions / inputs.size(0):.2f}")
 
-    avg_loss = total_loss / len(loader)
-    print(f"Average loss for the entire model after {len(loader) * args.batch_size} samples : {avg_loss:.4f}")
+    avg_loss = total_loss / size
+    avg_correct_preds = total_correct_preds / size
+    print(f"GPT2 final metrics after {size} samples | Loss : {avg_loss:.4f} | Accuracy : {avg_correct_preds:.2f}")
 
 
     #############################################################################################
@@ -114,12 +122,13 @@ def test_ioi_circuit(args):
 
     ablation_config_path = os.path.join(args.configs_folder, args.config)
 
-    model.ablate(abc_data_path, ablation_config_path)
+    model.ablate(abc_data_path, ablation_config_path, device)
 
     print("----------------------------------------------------------------------------------------------------")
     print(f"Evaluating the IOI circuit on the IOI dataset with template {args.prompt_type} and {size} samples.")
 
     total_loss = 0
+    total_correct_preds = 0
     for batch_idx, (batch_inputs, batch_labels) in enumerate(loader):
 
         with torch.no_grad():
@@ -134,15 +143,21 @@ def test_ioi_circuit(args):
             next_token_logits = all_logits[:, -1, :]
 
             loss = criterion(next_token_logits, labels)
+            current_loss = loss.item()
+            total_loss += current_loss
 
-            total_loss += loss.item()
+            predictions = next_token_logits.argmax(dim=-1)
+
+            correct_predictions = (predictions == labels).sum().item()
+
+            total_correct_preds += correct_predictions
 
             if ((batch_idx + 1) * args.batch_size) % args.test_steps == 0:
-                print(f"Average loss for the IOI circuit after {(batch_idx + 1) * args.batch_size} samples : {total_loss / (batch_idx + 1):.4f}")
+                print(f"IOI circuit after {(batch_idx + 1) * args.batch_size} samples | Loss : {current_loss / inputs.size(0):.4f} | Accuracy : {correct_predictions / inputs.size(0):.2f}")
 
-    avg_loss = total_loss / len(loader)
-    print(f"Average loss for the IOI circuit after {len(loader) * args.batch_size} samples : {avg_loss:.4f}")
-
+    avg_loss = total_loss / size
+    avg_correct_preds = total_correct_preds / size
+    print(f"IOI circuit final metrics after {size} samples | Loss : {avg_loss:.4f} | Accuracy : {avg_correct_preds:.2f}")
 
 
 
@@ -154,11 +169,12 @@ if __name__ == "__main__":
     parser.add_argument("-a", "--abc_data_path", type = str, default = "abc_data", help = "Path to the saved sums over the ABC dataset")
     parser.add_argument("-s", "--size", type = int, default = 8192, help = "Size of the IOI dataset (power of 2 is simpler for alignment with batch sizes)")
     parser.add_argument("-b", "--batch_size", type = int, default = 512, help = "Size of the batch (can be as large as vram allows as this is eval mode)")
-    parser.add_argument("-t", "--num_templates", type = int, default = 30, help = "Number of different templates to use.")
-    parser.add_argument("-p", "--prompt_type", type = str, default = 'mixed', help = "Template to use.")
+    parser.add_argument("-t", "--num_templates", type = int, default = 1, help = "Number of different templates to use.")
+    parser.add_argument("-p", "--prompt_type", type = str, default = 'BABA', help = "Template to use.")
     parser.add_argument("--configs_folder", type = str, default = "configs", help = "Configurations folder")
     parser.add_argument("-c", "--config", type = str, default = "ioi.json", help = "Ablation config file")
     parser.add_argument("--test_steps", type = int, default = 1024, help = "Number of samples between each print in the console.")
+    parser.add_argument("-i", "--template_index", type = int, default = 0, help = "Index of the template to use (if only one template is selected).")
 
 
     args = parser.parse_args()
