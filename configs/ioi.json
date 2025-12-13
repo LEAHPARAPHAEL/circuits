@@ -1,4 +1,6 @@
 {
+    "name" : "paper",
+
     "ablate_mlp" : false,
 
     "attention_heads" : {
