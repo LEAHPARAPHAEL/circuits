@@ -7,12 +7,9 @@ from torch.utils.data import TensorDataset, DataLoader
 from glob import glob
 import torch.nn as nn
 import torch.nn.functional as F
-<<<<<<< HEAD
 import time
-=======
 import json
 
->>>>>>> e9e9417e45c6cfe54548119eebf3c25b588ff0ea
 
 def test_ioi_circuit(args):
 
@@ -74,13 +71,8 @@ def test_ioi_circuit(args):
 
     #############################################################################################
     # Builds the model
-<<<<<<< HEAD
     #############################################################################################^
     start_time = time.time()
-=======
-    #############################################################################################
-
->>>>>>> e9e9417e45c6cfe54548119eebf3c25b588ff0ea
     model = AblatableGPT2Model.from_pretrained("gpt2")
     print(f"Loaded GPT2 model: total time {time.time() - start_time:.2f} seconds")
     model.to(device)
