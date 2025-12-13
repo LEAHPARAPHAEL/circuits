@@ -140,7 +140,7 @@ class AblatableGPT2Model(GPT2LMHeadModel):
         if int(old_sample_index) != 0:
             os.remove(abc_data_path)
 
-        new_abc_data_path = re.sub(old_sample_index, str(current_sample_index), abc_data_path)
+        new_abc_data_path = re.sub(f"{old_sample_index}.pth", f"{str(current_sample_index)}.pth", abc_data_path)
         torch.save(abc_data, new_abc_data_path)
 
         print(f"Successfully saved ABC data in {new_abc_data_path}")
@@ -150,7 +150,7 @@ class AblatableGPT2Model(GPT2LMHeadModel):
 
 
 
-    def ablate(self, abc_data_path : str, ablation_config_path : str) -> None:
+    def ablate(self, abc_data_path : str, ablation_config_path : str, device : str) -> None:
         '''
         Replaces the activations at indices specified in the configuration file
         by their means over the ABC dataset. 
@@ -159,6 +159,8 @@ class AblatableGPT2Model(GPT2LMHeadModel):
         :type abc_data_path: str
         :param ablation_config_path: The path to the configuration file to use for ablation.
         :type ablation_config_path: str
+        :param device : The device on which the data should be loaded
+        :type device : str
         '''
 
         ##########################################################################
@@ -166,7 +168,7 @@ class AblatableGPT2Model(GPT2LMHeadModel):
         ##########################################################################
 
         if os.path.isfile(abc_data_path):
-            abc_data = torch.load(abc_data_path)
+            abc_data = torch.load(abc_data_path, map_location = device)
         else:
             raise(FileNotFoundError("The specified checkpoint file does not exist."))
 
@@ -313,7 +315,9 @@ class AblatableGPT2Attention(GPT2Attention):
         '''
         self.ablated_heads = {}
 
-        for head_idx in heads_indices:
+        for head_idx in range(self.num_heads):
+            if head_idx in heads_indices:
+                continue
             head_abc_mean = abc_means[:, head_idx, :]
             self.ablated_heads[str(head_idx)] = head_abc_mean
 

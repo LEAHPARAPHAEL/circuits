@@ -697,6 +697,7 @@ class IOIDataset:
         prepend_bos=False,
         manual_word_idx=None,
         seed=None,
+        template_idx = None
     ):
         """
         ioi_prompts_for_word_idxs:
@@ -726,9 +727,17 @@ class IOIDataset:
             nb_templates = len(BABA_TEMPLATES)
 
         if prompt_type == "ABBA":
-            self.templates = ABBA_TEMPLATES[:nb_templates].copy()
+            if nb_templates == 1:
+                assert template_idx is not None
+                self.templates = ABBA_TEMPLATES[template_idx:template_idx+1].copy()
+            else:
+                self.templates = ABBA_TEMPLATES[:nb_templates].copy()
         elif prompt_type == "BABA":
-            self.templates = BABA_TEMPLATES[:nb_templates].copy()
+            if nb_templates == 1:
+                assert template_idx is not None
+                self.templates = BABA_TEMPLATES[template_idx:template_idx+1].copy()
+            else:
+                self.templates = BABA_TEMPLATES[:nb_templates].copy()
         elif prompt_type == "mixed":
             self.templates = (
                 BABA_TEMPLATES[: nb_templates // 2].copy()
@@ -736,9 +745,17 @@ class IOIDataset:
             )
             random.shuffle(self.templates)
         elif prompt_type == "ABC":
-            self.templates = ABC_TEMPLATES[:nb_templates].copy()
+            if nb_templates == 1:
+                assert template_idx is not None
+                self.templates = ABC_TEMPLATES[template_idx:template_idx+1].copy()
+            else:
+                self.templates = ABC_TEMPLATES[:nb_templates].copy()
         elif prompt_type == "BAC":
-            self.templates = BAC_TEMPLATES[:nb_templates].copy()
+            if nb_templates == 1:
+                assert template_idx is not None
+                self.templates = BAC_TEMPLATES[template_idx:template_idx+1].copy()
+            else:
+                self.templates = BAC_TEMPLATES[:nb_templates].copy()
         elif prompt_type == "ABC mixed":
             self.templates = (
                 ABC_TEMPLATES[: nb_templates // 2].copy()
