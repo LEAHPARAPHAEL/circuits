@@ -315,7 +315,9 @@ class AblatableGPT2Attention(GPT2Attention):
         '''
         self.ablated_heads = {}
 
-        for head_idx in heads_indices:
+        for head_idx in range(self.num_heads):
+            if head_idx in heads_indices:
+                continue
             head_abc_mean = abc_means[:, head_idx, :]
             self.ablated_heads[str(head_idx)] = head_abc_mean
 
