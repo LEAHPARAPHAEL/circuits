@@ -7,7 +7,12 @@ from torch.utils.data import TensorDataset, DataLoader
 from glob import glob
 import torch.nn as nn
 import torch.nn.functional as F
+<<<<<<< HEAD
 import time
+=======
+import json
+
+>>>>>>> e9e9417e45c6cfe54548119eebf3c25b588ff0ea
 
 def test_ioi_circuit(args):
 
@@ -36,8 +41,9 @@ def test_ioi_circuit(args):
     # Loads the sums over the ABC dataset.
     #############################################################################################
 
-    full_path = f"{args.abc_data_path}_{args.prompt_type}"
-    full_path += f"_T={args.template_index}" if args.num_templates == 1 else f"_N={args.num_templates}"
+    full_path = f"{args.abc_data_path}_{args.prompt_type}_"
+    template_key = f"T={args.template_index}" if args.num_templates == 1 else f"N={args.num_templates}"
+    full_path += template_key
     potential_filepaths = glob(f"{full_path}_*", root_dir = args.checkpoints_folder)
 
     if potential_filepaths:
@@ -68,8 +74,13 @@ def test_ioi_circuit(args):
 
     #############################################################################################
     # Builds the model
+<<<<<<< HEAD
     #############################################################################################^
     start_time = time.time()
+=======
+    #############################################################################################
+
+>>>>>>> e9e9417e45c6cfe54548119eebf3c25b588ff0ea
     model = AblatableGPT2Model.from_pretrained("gpt2")
     print(f"Loaded GPT2 model: total time {time.time() - start_time:.2f} seconds")
     model.to(device)
@@ -79,93 +90,166 @@ def test_ioi_circuit(args):
 
 
     #############################################################################################
+    # Gets or creates the result dict for the model
+    #############################################################################################
+
+    results_path = os.path.join(args.results_folder, f"gpt2.json")
+
+    if os.path.isfile(results_path):
+        log = json.load(open(results_path, "r"))
+    else:
+        log = {}
+
+    if args.prompt_type not in log:
+        log[args.prompt_type] = {}
+    
+    if template_key not in log[args.prompt_type]:
+        log[args.prompt_type][template_key] = {}
+        do_need_to_compute = True
+    else:
+        do_need_to_compute = False
+
+
+    #############################################################################################
     # First evaluation loop for the whole model
     #############################################################################################
 
     print("----------------------------------------------------------------------------------------------------")
     print(f"Evaluating the entire GPT2 model on the IOI dataset with template {args.prompt_type} and {size} samples.")
 
-    total_loss = 0
-    total_correct_preds = 0
-    for batch_idx, (batch_inputs, batch_labels) in enumerate(loader):
-        with torch.no_grad():
+    if do_need_to_compute:
+        total_loss = 0
+        total_correct_preds = 0
+        for batch_idx, (batch_inputs, batch_labels) in enumerate(loader):
+            with torch.no_grad():
 
-            inputs = batch_inputs.to(device)
-            labels = batch_labels.to(device)
-            
-            outputs = model(inputs)
+                inputs = batch_inputs.to(device)
+                labels = batch_labels.to(device)
+                
+                outputs = model(inputs)
 
-            all_logits = outputs.logits
+                all_logits = outputs.logits
 
-            next_token_logits = all_logits[:, -1, :]
+                next_token_logits = all_logits[:, -1, :]
 
-            loss = criterion(next_token_logits, labels)
-            current_loss = loss.item()
-            total_loss += current_loss
+                loss = criterion(next_token_logits, labels)
+                current_loss = loss.item()
+                total_loss += current_loss
 
-            predictions = next_token_logits.argmax(dim=-1)
+                predictions = next_token_logits.argmax(dim=-1)
 
-            correct_predictions = (predictions == labels).sum().item()
+                correct_predictions = (predictions == labels).sum().item()
 
-            total_correct_preds += correct_predictions
+                total_correct_preds += correct_predictions
 
-            if ((batch_idx + 1) * args.batch_size) % args.test_steps == 0:
-                print(f"GPT2 after {(batch_idx + 1) * args.batch_size} samples | Loss : {current_loss / inputs.size(0):.4f} | Accuracy : {correct_predictions / inputs.size(0):.2f}")
+                if ((batch_idx + 1) * args.batch_size) % args.test_steps == 0:
+                    print(f"GPT2 after {(batch_idx + 1) * args.batch_size} samples | Loss : {current_loss / inputs.size(0):.4f} | Accuracy : {correct_predictions / inputs.size(0):.2f}")
 
-    avg_loss = total_loss / size
-    avg_correct_preds = total_correct_preds / size
-    print(f"GPT2 final metrics after {size} samples | Loss : {avg_loss:.4f} | Accuracy : {avg_correct_preds:.2f}")
+        model_avg_loss = total_loss / size
+        model_avg_correct_preds = total_correct_preds / size
+
+        print(f"GPT2 final metrics after {size} samples | Loss : {model_avg_loss:.4f} | Accuracy : {model_avg_correct_preds:.2f}")
+
+        log[args.prompt_type][template_key]["Count"] = size
+        log[args.prompt_type][template_key]["Loss"] = model_avg_loss
+        log[args.prompt_type][template_key]["Accuracy"] = model_avg_correct_preds    
+
+        json.dump(log, open(results_path, "w"), indent = 4)
+
+    else:
+        print("Retrieving results from previous computations.")
+        print(f'GPT2 final metrics after {log[args.prompt_type][template_key]["Count"]} samples | Loss : {log[args.prompt_type][template_key]["Loss"]:.4f} | Accuracy : {log[args.prompt_type][template_key]["Accuracy"]:.2f}')
+
+
+
+    #############################################################################################
+    # Builds the circuit
+    #############################################################################################
+
+    ablation_config_path = os.path.join(args.configs_folder, args.config)
+
+    model.ablate(abc_data_path, ablation_config_path, device)
+    
+
+    #############################################################################################
+    # Gets or creates the result dict for the circuit
+    #############################################################################################
+
+    results_path = os.path.join(args.results_folder, f"{model.circuit_name}.json")
+
+    if os.path.isfile(results_path):
+        log = json.load(open(results_path, "r"))
+    else:
+        log = {}
+
+    if args.prompt_type not in log:
+        log[args.prompt_type] = {}
+    
+    if template_key not in log[args.prompt_type]:
+        log[args.prompt_type][template_key] = {}
+        do_need_to_compute = True
+
+    else:
+        do_need_to_compute = False
 
 
     #############################################################################################
     # Second evaluation loop for the circuit
     #############################################################################################
 
-    ablation_config_path = os.path.join(args.configs_folder, args.config)
-
-    model.ablate(abc_data_path, ablation_config_path, device)
-
     print("----------------------------------------------------------------------------------------------------")
     print(f"Evaluating the IOI circuit on the IOI dataset with template {args.prompt_type} and {size} samples.")
 
-    total_loss = 0
-    total_correct_preds = 0
-    for batch_idx, (batch_inputs, batch_labels) in enumerate(loader):
+    if do_need_to_compute:
 
-        with torch.no_grad():
+        total_loss = 0
+        total_correct_preds = 0
+        for batch_idx, (batch_inputs, batch_labels) in enumerate(loader):
 
-            inputs = batch_inputs.to(device)
-            labels = batch_labels.to(device)
-            
-            outputs = model(inputs)
+            with torch.no_grad():
 
-            all_logits = outputs.logits
+                inputs = batch_inputs.to(device)
+                labels = batch_labels.to(device)
+                
+                outputs = model(inputs)
 
-            next_token_logits = all_logits[:, -1, :]
+                all_logits = outputs.logits
 
-            loss = criterion(next_token_logits, labels)
-            current_loss = loss.item()
-            total_loss += current_loss
+                next_token_logits = all_logits[:, -1, :]
 
-            predictions = next_token_logits.argmax(dim=-1)
+                loss = criterion(next_token_logits, labels)
+                current_loss = loss.item()
+                total_loss += current_loss
 
-            correct_predictions = (predictions == labels).sum().item()
+                predictions = next_token_logits.argmax(dim=-1)
 
-            total_correct_preds += correct_predictions
+                correct_predictions = (predictions == labels).sum().item()
 
-            if ((batch_idx + 1) * args.batch_size) % args.test_steps == 0:
-                print(f"IOI circuit after {(batch_idx + 1) * args.batch_size} samples | Loss : {current_loss / inputs.size(0):.4f} | Accuracy : {correct_predictions / inputs.size(0):.2f}")
+                total_correct_preds += correct_predictions
 
-    avg_loss = total_loss / size
-    avg_correct_preds = total_correct_preds / size
-    print(f"IOI circuit final metrics after {size} samples | Loss : {avg_loss:.4f} | Accuracy : {avg_correct_preds:.2f}")
+                if ((batch_idx + 1) * args.batch_size) % args.test_steps == 0:
+                    print(f"IOI circuit after {(batch_idx + 1) * args.batch_size} samples | Loss : {current_loss / inputs.size(0):.4f} | Accuracy : {correct_predictions / inputs.size(0):.2f}")
+
+        circuit_avg_loss = total_loss / size
+        circuit_avg_correct_preds = total_correct_preds / size
+
+        print(f"IOI circuit final metrics after {size} samples | Loss : {circuit_avg_loss:.4f} | Accuracy : {circuit_avg_correct_preds:.2f}")
+
+        log[args.prompt_type][template_key]["Count"] = size
+        log[args.prompt_type][template_key]["Loss"] = circuit_avg_loss
+        log[args.prompt_type][template_key]["Accuracy"] = circuit_avg_correct_preds    
+
+        json.dump(log, open(results_path, "w"), indent = 4)
+
+    else:
+        print("Retrieving results from previous computations.")
+        print(f'{model.circuit_name} final metrics after {log[args.prompt_type][template_key]["Count"]} samples | Loss : {log[args.prompt_type][template_key]["Loss"]:.4f} | Accuracy : {log[args.prompt_type][template_key]["Accuracy"]:.2f}')
 
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Computes the means of the gpt2 model over the ABC dataset")
-    parser.add_argument("--results_folder", type = str, default = "checkpoints", help = "Checkpoints folder")
-    parser.add_argument("--results_file", type = str, default = "metrics.json", help = "Checkpoints folder")
+    parser.add_argument("--results_folder", type = str, default = "results", help = "Results folder")
     parser.add_argument("--checkpoints_folder", type = str, default = "checkpoints", help = "Checkpoints folder")
     parser.add_argument("-a", "--abc_data_path", type = str, default = "abc_data", help = "Path to the saved sums over the ABC dataset")
     parser.add_argument("-s", "--size", type = int, default = 8192, help = "Size of the IOI dataset (power of 2 is simpler for alignment with batch sizes)")

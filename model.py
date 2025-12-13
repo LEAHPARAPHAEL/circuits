@@ -177,7 +177,7 @@ class AblatableGPT2Model(GPT2LMHeadModel):
         else:
             raise(FileNotFoundError("The specified config file does not exist."))
 
-
+        self.circuit_name = ablation_config["name"]
 
         abc_dataset_size = float(abc_data["last_sample_index"])
 
