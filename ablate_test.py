@@ -5,63 +5,64 @@ from ioi_dataset import IOIDataset
 import os
 from torch.utils.data import TensorDataset, DataLoader
 from glob import glob
+import torch.nn as nn
+import torch.nn.functional as F
 
 
-
-def compute_abc_means(args):
+def test_ioi_circuit(args):
 
     size = args.size
     device = args.device
 
     #############################################################################################
-    # Builds the ABC samples
+    # Builds the IOI dataset
     #############################################################################################
 
     ioi_samples = IOIDataset(
-        prompt_type="BABA",
+        prompt_type=args.prompt_type,
         N=size,
         nb_templates=args.num_templates,
         seed = 0,
     )
 
-    abc_samples = (
-        ioi_samples.gen_flipped_prompts(("IO", "RAND"), seed=1)
-        .gen_flipped_prompts(("S", "RAND"), seed=2)
-        .gen_flipped_prompts(("S1", "RAND"), seed=3)
-    )
-
+    print("----------------------------------------------------------------------------------------------------")
+    print("A few samples from the IOI dataset  : ")
+    for sentence in ioi_samples.sentences[:5]:
+        print(sentence)
+    print("----------------------------------------------------------------------------------------------------")
 
     #############################################################################################
-    # Finds potential checkpoints
+    # Loads the sums over the ABC dataset.
     #############################################################################################
 
-    potential_filepaths = glob(f"{args.abc_means_filepath}_*", root_dir = args.checkpoints_folder)
+    potential_filepaths = glob(f"{args.abc_data_path}_*", root_dir = args.checkpoints_folder)
 
     if potential_filepaths:
-        abc_means_filepath = os.path.join(args.checkpoints_folder, potential_filepaths[0])
-        abc_means = torch.load(abc_means_filepath, map_location = device)
+        abc_data_path = os.path.join(args.checkpoints_folder, potential_filepaths[0])
+        abc_data = torch.load(abc_data_path, map_location = device)
 
-        print(f"Successfully loaded previous ABC means from {abc_means_filepath}")
+        print(f"Successfully loaded previous ABC means from {abc_data_path}")
 
-        last_sample_index = abc_means["last_sample_index"]
+        last_sample_index = abc_data["last_sample_index"]
 
     else:
-        abc_means_filepath = os.path.join(args.checkpoints_folder, f"{args.abc_means_filepath}_0.pth")
-        abc_means = None
-        last_sample_index = 0
+        raise(FileNotFoundError("No ABC data file was found ! One is required to perform ablation. Please execute" \
+        "the file compute_abc_data.py first. "))
 
 
     #############################################################################################
     # Builds the dataset and dataloader
     #############################################################################################
 
-    seq_len = abc_samples.toks.shape[1]
+    seq_len = ioi_samples.toks.shape[1]
 
-    abc_tokens = abc_samples.toks.long()[last_sample_index:size, :seq_len - 1].to(device)
+    ioi_inputs = ioi_samples.toks.long()[:, :seq_len - 1]
 
-    abc_dataset = TensorDataset(abc_tokens)
+    ioi_labels = ioi_samples.toks.long()[:, seq_len - 1]
 
-    loader = DataLoader(abc_dataset, batch_size = args.batch_size, shuffle = False)
+    ioi_dataset = TensorDataset(ioi_inputs, ioi_labels)
+
+    loader = DataLoader(ioi_dataset, batch_size = args.batch_size, shuffle = False)
 
 
     #############################################################################################
@@ -72,42 +73,92 @@ def compute_abc_means(args):
     model.to(device)
     model.eval()
 
+    criterion = nn.CrossEntropyLoss()
+
 
     #############################################################################################
-    # Evaluation loop
+    # First evaluation loop for the whole model
     #############################################################################################
 
-    model.accumulate()
-    print(f"Evaluating the model on the ABC dataset from index {last_sample_index} to {size}")
-    with torch.no_grad():
+    print("----------------------------------------------------------------------------------------------------")
+    print(f"Evaluating the entire GPT2 model on the IOI dataset with template {args.prompt_type} and {size} samples.")
 
-        current_sample_index = last_sample_index
+    total_loss = 0
+    for batch_idx, (batch_inputs, batch_labels) in enumerate(loader):
 
-        for batch in loader:
+        with torch.no_grad():
 
-            inputs = batch[0].to(device)
+            inputs = batch_inputs.to(device)
+            labels = batch_labels.to(device)
             
-            model(inputs)
+            outputs = model(inputs)
 
-            current_sample_index += inputs.size(0)
+            all_logits = outputs.logits
 
-            if current_sample_index % args.checkpoint_steps == 0:
-                abc_means, abc_means_filepath = model.update_accumulation_data(current_sample_index, abc_means_filepath, abc_means)
+            next_token_logits = all_logits[:, -1, :]
+
+            loss = criterion(next_token_logits, labels)
+
+            total_loss += loss.item()
+
+            if ((batch_idx + 1) * args.batch_size) % args.test_steps == 0:
+                print(f"Average loss for the entire model after {(batch_idx + 1) * args.batch_size} samples : {total_loss / (batch_idx + 1):.4f}")
+
+    avg_loss = total_loss / len(loader)
+    print(f"Average loss for the entire model after {len(loader) * args.batch_size} samples : {avg_loss:.4f}")
 
 
-    
+    #############################################################################################
+    # Second evaluation loop for the circuit
+    #############################################################################################
+
+    ablation_config_path = os.path.join(args.configs_folder, args.config)
+
+    model.ablate(abc_data_path, ablation_config_path)
+
+    print("----------------------------------------------------------------------------------------------------")
+    print(f"Evaluating the IOI circuit on the IOI dataset with template {args.prompt_type} and {size} samples.")
+
+    total_loss = 0
+    for batch_idx, (batch_inputs, batch_labels) in enumerate(loader):
+
+        with torch.no_grad():
+
+            inputs = batch_inputs.to(device)
+            labels = batch_labels.to(device)
+            
+            outputs = model(inputs)
+
+            all_logits = outputs.logits
+
+            next_token_logits = all_logits[:, -1, :]
+
+            loss = criterion(next_token_logits, labels)
+
+            total_loss += loss.item()
+
+            if ((batch_idx + 1) * args.batch_size) % args.test_steps == 0:
+                print(f"Average loss for the IOI circuit after {(batch_idx + 1) * args.batch_size} samples : {total_loss / (batch_idx + 1):.4f}")
+
+    avg_loss = total_loss / len(loader)
+    print(f"Average loss for the IOI circuit after {len(loader) * args.batch_size} samples : {avg_loss:.4f}")
+
+
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Computes the means of the gpt2 model over the ABC dataset")
+    parser.add_argument("--results_folder", type = str, default = "checkpoints", help = "Checkpoints folder")
+    parser.add_argument("--results_file", type = str, default = "metrics.json", help = "Checkpoints folder")
     parser.add_argument("--checkpoints_folder", type = str, default = "checkpoints", help = "Checkpoints folder")
-    parser.add_argument("-r", "--results_folder", type = str, default = "checkpoints", help = "Checkpoints folder")
-    parser.add_argument("-a", "--abc_means_filepath", type = str, default = "abc_means", help = "Path to the saved means over the ABC dataset")
-    parser.add_argument("-s", "--size", type = int, default = 8192, help = "Size of the ABC dataset (power of 2 is simpler for alignment with batch sizes)")
-    parser.add_argument("-c", "--checkpoint_steps", type = int, default = 1024, help = "Number of samples to evaluate between each checkpoint")
+    parser.add_argument("-a", "--abc_data_path", type = str, default = "abc_data", help = "Path to the saved sums over the ABC dataset")
+    parser.add_argument("-s", "--size", type = int, default = 8192, help = "Size of the IOI dataset (power of 2 is simpler for alignment with batch sizes)")
     parser.add_argument("-b", "--batch_size", type = int, default = 512, help = "Size of the batch (can be as large as vram allows as this is eval mode)")
-    parser.add_argument("-t", "--num_templates", type = int, default = 15, help = "Number of different templates to use.")
-
+    parser.add_argument("-t", "--num_templates", type = int, default = 30, help = "Number of different templates to use.")
+    parser.add_argument("-p", "--prompt_type", type = str, default = 'mixed', help = "Template to use.")
+    parser.add_argument("--configs_folder", type = str, default = "configs", help = "Configurations folder")
+    parser.add_argument("-c", "--config", type = str, default = "ioi.json", help = "Ablation config file")
+    parser.add_argument("--test_steps", type = int, default = 1024, help = "Number of samples between each print in the console.")
 
 
     args = parser.parse_args()
@@ -115,7 +166,9 @@ if __name__ == "__main__":
     args.device = "cuda" if torch.cuda.is_available() else "cpu"
 
     os.makedirs(args.checkpoints_folder, exist_ok=True)
+    os.makedirs(args.configs_folder, exist_ok=True)
+    os.makedirs(args.results_folder, exist_ok=True)
 
-    compute_abc_means(args)
+    test_ioi_circuit(args)
 
 

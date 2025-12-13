@@ -27,7 +27,7 @@ def compute_abc_data(args : argparse.Namespace) -> None:
     #############################################################################################
 
     ioi_samples = IOIDataset(
-        prompt_type="BABA",
+        prompt_type=args.prompt_type,
         N=size,
         nb_templates=args.num_templates,
         seed = 0,
@@ -110,11 +110,12 @@ def compute_abc_data(args : argparse.Namespace) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Computes the sum of outputs of the gpt2 model over the ABC dataset")
     parser.add_argument("--checkpoints_folder", type = str, default = "checkpoints", help = "Checkpoints folder")
-    parser.add_argument("-a", "--abc_data_filepath", type = str, default = "abc_data", help = "Path to the saved means over the ABC dataset")
+    parser.add_argument("-a", "--abc_data_filepath", type = str, default = "abc_data", help = "Path to the saved sums over the ABC dataset")
     parser.add_argument("-s", "--size", type = int, default = 8192, help = "Size of the ABC dataset (power of 2 is simpler for alignment with batch sizes)")
     parser.add_argument("-c", "--checkpoint_steps", type = int, default = 1024, help = "Number of samples to evaluate between each checkpoint")
     parser.add_argument("-b", "--batch_size", type = int, default = 512, help = "Size of the batch (can be as large as vram allows as this is eval mode)")
     parser.add_argument("-t", "--num_templates", type = int, default = 15, help = "Number of different templates to use.")
+    parser.add_argument("-p", "--prompt_type", type = str, default = 'BABA', help = "Templates to use.")
 
 
 

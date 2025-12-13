@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from transformers import GPT2Model, GPT2Config
+from transformers import GPT2LMHeadModel, GPT2Config
 from transformers.models.gpt2.modeling_gpt2 import GPT2Attention, GPT2MLP
 from transformers.activations import ACT2FN, get_activation
 from transformers.cache_utils import Cache, DynamicCache, EncoderDecoderCache
@@ -15,13 +15,10 @@ import json
 # https://huggingface.co/transformers/v4.9.2/_modules/transformers/models/gpt2/modeling_gpt2.html
 
 
-class AblatableGPT2Model(GPT2Model):
-    def __init__(self, config = None):
-        if config is None:
-            config = GPT2Config()
+class AblatableGPT2Model(GPT2LMHeadModel):
+    def __init__(self, config):
         super().__init__(config)
 
-        
         ##########################################################################
         # Immediately replaces the standard layers by ablatable ones
         ##########################################################################
@@ -42,7 +39,7 @@ class AblatableGPT2Model(GPT2Model):
         # Iterates through each transformer block
         ##########################################################################
 
-        for layer_idx, block in enumerate(self.h):
+        for layer_idx, block in enumerate(self.transformer.h):
             
             ##########################################################################
             # Replaces the attention layer
@@ -73,7 +70,7 @@ class AblatableGPT2Model(GPT2Model):
         layers of interest (attention heads, MLP layers).
         '''
 
-        for _, block in enumerate(self.h):
+        for _, block in enumerate(self.transformer.h):
             
             block.attn.reset_accumulation()
 
@@ -83,7 +80,7 @@ class AblatableGPT2Model(GPT2Model):
 
     def update_accumulation_data(self, 
                                 current_sample_index : int, 
-                                abc_data_filepath : str, 
+                                abc_data_path : str, 
                                 abc_data : dict) -> tuple[dict, str]:
 
         '''
@@ -93,8 +90,8 @@ class AblatableGPT2Model(GPT2Model):
         :param current_sample_index: The index in the dataset below which the sum of the outputs has 
                                      already been accumulated. 
         :type current_sample_index: int
-        :param abc_data_filepath: The previous file containing the sum over the ABC dataset.
-        :type abc_data_filepath: str
+        :param abc_data_path: The previous file containing the sum over the ABC dataset.
+        :type abc_data_path: str
         :param abc_data: The dict object containing the tensors. 
         :type abc_data: dict
         :return: The updated dictionary and the filepath where it has been saved. 
@@ -108,7 +105,7 @@ class AblatableGPT2Model(GPT2Model):
         if abc_data is None:
 
             abc_data = {"last_sample_index" : current_sample_index}
-            for i, block in enumerate(self.h):
+            for i, block in enumerate(self.transformer.h):
                 
                 abc_data[str(i)] = {
                     "attention" : block.attn.accumulation_outputs,
@@ -126,7 +123,7 @@ class AblatableGPT2Model(GPT2Model):
         else:
 
             abc_data["last_sample_index"] = current_sample_index
-            for i, block in enumerate(self.h):
+            for i, block in enumerate(self.transformer.h):
                 
                 abc_data[str(i)]["attention"] += block.attn.accumulation_outputs
                 abc_data[str(i)]["mlp"] += block.mlp.accumulation_outputs
@@ -139,17 +136,17 @@ class AblatableGPT2Model(GPT2Model):
         # Checkpoint logic for the new checkpoint path
         ##########################################################################
 
-        old_sample_index = abc_data_filepath.split("_")[-1].replace(".pth", "")
+        old_sample_index = abc_data_path.split("_")[-1].replace(".pth", "")
         if int(old_sample_index) != 0:
-            os.remove(abc_data_filepath)
+            os.remove(abc_data_path)
 
-        new_abc_data_filepath = re.sub(old_sample_index, str(current_sample_index), abc_data_filepath)
-        torch.save(abc_data, new_abc_data_filepath)
+        new_abc_data_path = re.sub(old_sample_index, str(current_sample_index), abc_data_path)
+        torch.save(abc_data, new_abc_data_path)
 
-        print(f"Successfully saved ABC data in {new_abc_data_filepath}")
+        print(f"Successfully saved ABC data in {new_abc_data_path}")
 
 
-        return abc_data, new_abc_data_filepath
+        return abc_data, new_abc_data_path
 
 
 
@@ -188,7 +185,7 @@ class AblatableGPT2Model(GPT2Model):
         # Iterates through each layer to ablate the means
         ##########################################################################
 
-        for i, block in enumerate(self.h):
+        for i, block in enumerate(self.transformer.h):
             
             block_abc_data = abc_data[str(i)]
 
@@ -196,11 +193,12 @@ class AblatableGPT2Model(GPT2Model):
             # Attention heads ablation
             ##########################################################################
 
-            ablation_attention_head_config = ablation_attention_heads_config[str(i)]
+            heads_indices = ablation_attention_heads_config.get(str(i), None)
 
-            abc_attention_means = block_abc_data["attention"] / abc_dataset_size
+            if heads_indices is not None:
+                abc_attention_means = block_abc_data["attention"] / abc_dataset_size
 
-            block.attn.ablate(abc_attention_means, ablation_attention_head_config)
+                block.attn.ablate(abc_attention_means, heads_indices)
 
             ##########################################################################
             # MLP layer ablation if specified in the config
@@ -241,12 +239,6 @@ class AblatableGPT2MLP(GPT2MLP):
         :type abc_means: torch.Tensor
         '''
 
-        ##########################################################################
-        # Reshapes the weights if needed
-        ##########################################################################
-
-        if abc_means.dim() == 1:
-            abc_means = abc_means.view(1, 1, -1) 
         self.abc_means = abc_means
 
         self.forward_mode = "ablation"
@@ -309,26 +301,21 @@ class AblatableGPT2Attention(GPT2Attention):
         '''
         self.forward_mode = forward_mode
 
-    def ablate(self, abc_means : torch.FloatTensor, ablation_config : dict) -> None:
+    def ablate(self, abc_means : torch.FloatTensor, heads_indices : list) -> None:
         '''
         Switches to ablation mode, and ablates heads using indices specified in the
         configuration file.
         
         :param abc_means: Means over the ABC dataset.
         :type abc_means: torch.FloatTensor
-        :param ablation_config: Configuration dictionary containing the indices of the heads to ablate. 
-        :type ablation_config: dict
+        :param heads_indices: list containing the indices of the heads to ablate. 
+        :type heads_indices: dict
         '''
+        self.ablated_heads = {}
 
-
-
-
-        for head_idx, ablated_mean in heads_ablated_means.items():
-            if ablated_mean.dim() == 1:
-                ablated_mean = ablated_mean.view(1, 1, 1, -1)
-                heads_ablated_means[head_idx] = ablated_mean
-
-        self.heads_ablated_means = heads_ablated_means
+        for head_idx in heads_indices:
+            head_abc_mean = abc_means[:, head_idx, :]
+            self.ablated_heads[str(head_idx)] = head_abc_mean
 
         self.forward_mode = "ablation"
 
@@ -424,7 +411,6 @@ class AblatableGPT2Attention(GPT2Attention):
                 **kwargs,
             )
 
-
         #####################################################################
         '''
         Replaces the output slice that corresponds to the heads we want to ablate with the
@@ -433,8 +419,8 @@ class AblatableGPT2Attention(GPT2Attention):
         we want to test.
         '''
         if self.forward_mode == "ablation":
-            for head_idx, ablated_mean in self.heads_ablated_means:
-                attn_output[None, :, head_idx, :] = ablated_mean
+            for head_idx, ablated_mean in self.ablated_heads.items():
+                attn_output[:, :ablated_mean.size(0), int(head_idx), :] = ablated_mean
 
         elif self.forward_mode == "accumulation":
             if self.accumulation_outputs is None:
