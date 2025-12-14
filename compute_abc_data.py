@@ -89,7 +89,7 @@ def compute_abc_data(args : argparse.Namespace) -> None:
     # Evaluation loop
     #############################################################################################
 
-    model.accumulate()
+    model.start_accumulation()
     print("----------------------------------------------------------------------------------------------------")
     print(f"Evaluating the model on the ABC dataset for template {args.prompt_type} with {size} samples")
     with torch.no_grad():

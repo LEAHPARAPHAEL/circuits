@@ -61,9 +61,32 @@ class AblatableGPT2Model(GPT2LMHeadModel):
                 config = config
             )
 
+    def start_detection(self) -> None:
+        '''
+        Switches to head_detection mode. Prepares the attention layers to keep track of
+        their attention weights.
+        '''
+
+        for _, block in enumerate(self.transformer.h):
+            
+            block.attn.start_detection()
+
+    def stop_detection(self) -> dict:
+        '''
+        Returns the accumulated attention weights of the attention layers and switches back
+        to default mode (no more storage of the attention weights).
+        '''
+        data = {}
+        for i, block in enumerate(self.transformer.h):
+            
+            block.attn.set_forward_mode("standard")
 
 
-    def accumulate(self) -> None:
+
+
+
+
+    def start_accumulation(self) -> None:
 
         '''
         Switches to accumulation mode. Resets the accumulation buffers for all
@@ -72,9 +95,9 @@ class AblatableGPT2Model(GPT2LMHeadModel):
 
         for _, block in enumerate(self.transformer.h):
             
-            block.attn.reset_accumulation()
+            block.attn.start_accumulation()
 
-            block.mlp.reset_accumulation()
+            block.mlp.start_accumulation()
 
 
     
@@ -95,14 +118,14 @@ class AblatableGPT2Model(GPT2LMHeadModel):
                 "mlp" : block.mlp.accumulation_outputs
             }
 
-            block.attn.reset_accumulation()
-            block.mlp.reset_accumulation()
+            block.attn.set_forward_mode("standard")
+            block.mlp.set_forward_mode("standard")
 
         return data
 
 
 
-    def ablate(self, abc_data : str, ablation_config : str, device : str) -> None:
+    def ablate(self, abc_data : str, ablation_config : str) -> None:
         '''
         Replaces the activations at indices specified in the configuration file
         by their means over the ABC dataset. 
@@ -111,11 +134,8 @@ class AblatableGPT2Model(GPT2LMHeadModel):
         :type abc_data: str
         :param ablation_config: Configuration for mean ablation.
         :type ablation_config: str
-        :param device: Device on which the weights should be ported.
-        :type device: str
         '''
         
-
         ##########################################################################
         # Ablation config
         ##########################################################################
@@ -188,7 +208,7 @@ class AblatableGPT2MLP(GPT2MLP):
 
 
 
-    def reset_accumulation(self) -> None:
+    def start_accumulation(self) -> None:
         '''
         Switches to accumulation mode and reset the accumulation outputs buffer. 
         '''
@@ -239,7 +259,7 @@ class AblatableGPT2Attention(GPT2Attention):
                              where the layer executes a regular forward pass. If "accumulation", the
                              outputs of the attention heads are accumulated into a tensor. If "ablation",
                              some of the outputs of the attention heads can be replaced by their means
-                             over the ABC dataset. 
+                             over the ABC dataset.
         :type forward_mode: str
         '''
         self.forward_mode = forward_mode
@@ -265,13 +285,22 @@ class AblatableGPT2Attention(GPT2Attention):
         self.forward_mode = "ablation"
 
 
-    def reset_accumulation(self) -> None:
+    def start_accumulation(self) -> None:
         '''
         Switches to accumulation mode and reset the accumulation outputs buffer. 
         '''
         self.accumulation_outputs = None
 
-        self.forward_mode = "accumulation"        
+        self.forward_mode = "accumulation"   
+
+
+    def stop_accumulation(self) -> None:
+        '''
+        Stops accumulation mode.
+        '''
+        self.accumulation_outputs = None
+
+        self.forward_mode = "standard"    
 
 
     def forward(

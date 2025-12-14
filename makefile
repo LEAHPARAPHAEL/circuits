@@ -15,4 +15,4 @@ compute_average_on_abc_dataset:
 ########################################
 
 ablation_inference:
-	python ablate_test.py
+	python test_circuit.py

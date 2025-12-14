@@ -13,10 +13,24 @@ from compute_abc_data import compute_abc_data
 from tqdm import tqdm
 
 
-def test_ioi_circuit(args):
+def detect_heads(args):
 
     size = args.size
     device = args.device
+
+    #############################################################################################
+    # Loop over all templates found to get an average across several templates
+    #############################################################################################
+    
+    ablation_config_path = os.path.join(args.configs_folder, args.config)
+
+    if os.path.isfile(ablation_config_path):
+        ablation_config = json.load(open(ablation_config_path, "r"))
+    else:
+        raise(FileNotFoundError("The specified config file does not exist."))    
+
+
+
 
     #############################################################################################
     # Builds the IOI dataset
@@ -50,7 +64,7 @@ def test_ioi_circuit(args):
         print("ABC data not found. Fall back to full computation.")
         compute_abc_data(args)
 
-    abc_data = torch.load(abc_path)
+    abc_data = torch.load(abc_path, map_location = device)
     print(f"Successfully loaded previous ABC means from {abc_path}")
 
 
@@ -165,8 +179,7 @@ def test_ioi_circuit(args):
     else:
         raise(FileNotFoundError("The specified config file does not exist."))
 
-    model.ablate(abc_data, ablation_config, device)
-    
+    model.ablate(abc_data, ablation_config)
 
     #############################################################################################
     # Gets or creates the result dict for the circuit
@@ -243,10 +256,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Computes the means of the gpt2 model over the ABC dataset")
     parser.add_argument("--results_folder", type = str, default = "results", help = "Results folder")
     parser.add_argument("--checkpoints_folder", type = str, default = "checkpoints", help = "Checkpoints folder")
-    parser.add_argument("-s", "--size", type = int, default = 8192, help = "Size of the IOI dataset (power of 2 is simpler for alignment with batch sizes)")
-    parser.add_argument("-b", "--batch_size", type = int, default = 512, help = "Size of the batch (can be as large as vram allows as this is eval mode)")
-    parser.add_argument("-t", "--num_templates", type = int, default = 1, help = "Number of different templates to use.")
-    parser.add_argument("-p", "--prompt_type", type = str, default = 'BABA', help = "Template to use.")
+    parser.add_argument("-s", "--size", type = int, default = 1, help = "Size of the IOI dataset (power of 2 is simpler for alignment with batch sizes)")
     parser.add_argument("--configs_folder", type = str, default = "configs", help = "Configurations folder")
     parser.add_argument("-c", "--config", type = str, default = "ioi.json", help = "Ablation config file")
     parser.add_argument("-i", "--template_index", type = int, default = 0, help = "Index of the template to use (if only one template is selected).")
@@ -260,6 +270,6 @@ if __name__ == "__main__":
     os.makedirs(args.configs_folder, exist_ok=True)
     os.makedirs(args.results_folder, exist_ok=True)
 
-    test_ioi_circuit(args)
+    detect_heads(args)
 
 
