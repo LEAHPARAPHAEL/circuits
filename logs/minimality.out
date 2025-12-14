@@ -1,0 +1,456 @@
+----------------------------------------------------------------------------------------------------
+A few samples from the IOI dataset  : 
+Then, Jeffrey and Mary went to the restaurant. Jeffrey gave a bone to Mary
+Then, Jamie and Brittany went to the garden. Jamie gave a necklace to Brittany
+Then, Amy and Christine went to the station. Amy gave a drink to Christine
+Then, Adam and Jonathan went to the garden. Adam gave a bone to Jonathan
+Then, Crystal and Katie went to the garden. Crystal gave a computer to Katie
+----------------------------------------------------------------------------------------------------
+Successfully loaded previous ABC means from checkpoints/abc_BABA_T=0
+----------------------------------------------------------------------------------------------------
+Sequence length :  16
+Loaded GPT2 model: total time 0.49 seconds
+Dealing with head (9, 9) for minimality computation.
+for head (9, 9), 
+ minimality set without heads: {'0': [1, 10], '2': [2, 9], '3': [0], '4': [11], '5': [5, 8, 9], '6': [9], '7': [3, 9], '8': [6, 10], '9': [6, 7], '10': [0, 1, 2, 6, 7, 10], '11': [2, 3, 9, 10]} 
+ minimality set with heads: {'0': [1, 10], '2': [2, 9], '3': [0], '4': [11], '5': [5, 8, 9], '6': [9], '7': [3, 9], '8': [6, 10], '9': [6, 7, 9], '10': [0, 1, 2, 6, 7, 10], '11': [2, 3, 9, 10]}
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(9, 9)_minimality_set_without_(9, 9)_minimality_set_without on the IOI dataset with template BABA and 8192 samples.
+Retrieving results from previous computations.
+paper_ablation_(9, 9)_minimality_set_without_(9, 9)_minimality_set_without metrics on 8192 samples | Loss : 1.4411 | Accuracy : 0.82 | Logit difference : 3.10"
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(9, 9)_minimality_set_with_(9, 9)_minimality_set_with on the IOI dataset with template BABA and 8192 samples.
+Retrieving results from previous computations.
+paper_ablation_(9, 9)_minimality_set_with_(9, 9)_minimality_set_with metrics on 8192 samples | Loss : 1.0619 | Accuracy : 0.94 | Logit difference : 3.59"
+Minimality results for head  (9, 9)
+Without head :  3.096716210246086
+With head :  3.594572126865387
+Difference in logit difference :  0.49785591661930084
+A so far :  0.49785591661930084
+Dealing with head (10, 0) for minimality computation.
+for head (10, 0), 
+ minimality set without heads: {'0': [1, 10], '2': [2, 9], '3': [0], '4': [11], '5': [5, 8, 9], '6': [9], '7': [3, 9], '8': [6, 10], '9': [6, 7], '10': [1, 2, 6, 7, 10], '11': [2, 3, 9, 10]} 
+ minimality set with heads: {'0': [1, 10], '2': [2, 9], '3': [0], '4': [11], '5': [5, 8, 9], '6': [9], '7': [3, 9], '8': [6, 10], '9': [6, 7], '10': [0, 1, 2, 6, 7, 10], '11': [2, 3, 9, 10]}
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(10, 0)_minimality_set_without_(10, 0)_minimality_set_without on the IOI dataset with template BABA and 8192 samples.
+Retrieving results from previous computations.
+paper_ablation_(10, 0)_minimality_set_without_(10, 0)_minimality_set_without metrics on 8192 samples | Loss : 2.2063 | Accuracy : 0.47 | Logit difference : 2.75"
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(10, 0)_minimality_set_with_(10, 0)_minimality_set_with on the IOI dataset with template BABA and 8192 samples.
+Retrieving results from previous computations.
+paper_ablation_(10, 0)_minimality_set_with_(10, 0)_minimality_set_with metrics on 8192 samples | Loss : 1.4411 | Accuracy : 0.82 | Logit difference : 3.10"
+Minimality results for head  (10, 0)
+Without head :  2.746655687689781
+With head :  3.096716210246086
+Difference in logit difference :  0.35006052255630493
+A so far :  0.35006052255630493
+Dealing with head (9, 6) for minimality computation.
+for head (9, 6), 
+ minimality set without heads: {'0': [1, 10], '2': [2, 9], '3': [0], '4': [11], '5': [5, 8, 9], '6': [9], '7': [3, 9], '8': [6, 10], '9': [7], '10': [1, 2, 6, 7, 10], '11': [2, 3, 9, 10]} 
+ minimality set with heads: {'0': [1, 10], '2': [2, 9], '3': [0], '4': [11], '5': [5, 8, 9], '6': [9], '7': [3, 9], '8': [6, 10], '9': [6, 7], '10': [1, 2, 6, 7, 10], '11': [2, 3, 9, 10]}
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(9, 6)_minimality_set_without_(9, 6)_minimality_set_without on the IOI dataset with template BABA and 8192 samples.
+Retrieving results from previous computations.
+paper_ablation_(9, 6)_minimality_set_without_(9, 6)_minimality_set_without metrics on 8192 samples | Loss : 2.4096 | Accuracy : 0.43 | Logit difference : 3.29"
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(9, 6)_minimality_set_with_(9, 6)_minimality_set_with on the IOI dataset with template BABA and 8192 samples.
+Retrieving results from previous computations.
+paper_ablation_(9, 6)_minimality_set_with_(9, 6)_minimality_set_with metrics on 8192 samples | Loss : 2.2063 | Accuracy : 0.47 | Logit difference : 2.75"
+Minimality results for head  (9, 6)
+Without head :  3.293916016817093
+With head :  2.746655687689781
+Difference in logit difference :  0.5472603291273117
+A so far :  0.35006052255630493
+Dealing with head (10, 7) for minimality computation.
+for head (10, 7), 
+ minimality set without heads: {'0': [1, 10], '2': [2, 9], '3': [0], '4': [11], '5': [5, 8, 9], '6': [9], '7': [3, 9], '8': [6, 10], '9': [6, 7, 9], '10': [0, 1, 2, 6, 10], '11': [2, 3, 9]} 
+ minimality set with heads: {'0': [1, 10], '2': [2, 9], '3': [0], '4': [11], '5': [5, 8, 9], '6': [9], '7': [3, 9], '8': [6, 10], '9': [6, 7, 9], '10': [0, 1, 2, 6, 7, 10], '11': [2, 3, 9]}
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(10, 7)_minimality_set_without_(10, 7)_minimality_set_without on the IOI dataset with template BABA and 8192 samples.
+Retrieving results from previous computations.
+paper_ablation_(10, 7)_minimality_set_without_(10, 7)_minimality_set_without metrics on 8192 samples | Loss : 0.1902 | Accuracy : 1.00 | Logit difference : 6.32"
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(10, 7)_minimality_set_with_(10, 7)_minimality_set_with on the IOI dataset with template BABA and 8192 samples.
+Retrieving results from previous computations.
+paper_ablation_(10, 7)_minimality_set_with_(10, 7)_minimality_set_with metrics on 8192 samples | Loss : 0.5594 | Accuracy : 0.99 | Logit difference : 4.47"
+Minimality results for head  (10, 7)
+Without head :  6.315950840711594
+With head :  4.466569781303406
+Difference in logit difference :  1.8493810594081879
+A so far :  0.35006052255630493
+Dealing with head (11, 10) for minimality computation.
+for head (11, 10), 
+ minimality set without heads: {'0': [1, 10], '2': [2, 9], '3': [0], '4': [11], '5': [5, 8, 9], '6': [9], '7': [3, 9], '8': [6, 10], '9': [6, 7, 9], '10': [0, 1, 2, 6, 10], '11': [2, 3, 9]} 
+ minimality set with heads: {'0': [1, 10], '2': [2, 9], '3': [0], '4': [11], '5': [5, 8, 9], '6': [9], '7': [3, 9], '8': [6, 10], '9': [6, 7, 9], '10': [0, 1, 2, 6, 10], '11': [2, 3, 9, 10]}
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(11, 10)_minimality_set_without_(11, 10)_minimality_set_without on the IOI dataset with template BABA and 8192 samples.
+Retrieving results from previous computations.
+paper_ablation_(11, 10)_minimality_set_without_(11, 10)_minimality_set_without metrics on 8192 samples | Loss : 0.1902 | Accuracy : 1.00 | Logit difference : 6.32"
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(11, 10)_minimality_set_with_(11, 10)_minimality_set_with on the IOI dataset with template BABA and 8192 samples.
+Retrieving results from previous computations.
+paper_ablation_(11, 10)_minimality_set_with_(11, 10)_minimality_set_with metrics on 8192 samples | Loss : 0.5272 | Accuracy : 1.00 | Logit difference : 4.97"
+Minimality results for head  (11, 10)
+Without head :  6.315950840711594
+With head :  4.972591310739517
+Difference in logit difference :  1.3433595299720764
+A so far :  0.35006052255630493
+Dealing with head (7, 3) for minimality computation.
+for head (7, 3), 
+ minimality set without heads: {'0': [1, 10], '2': [2, 9], '3': [0], '4': [11], '5': [5, 8, 9], '6': [9], '7': [], '8': [], '9': [6, 7, 9], '10': [0, 1, 2, 6, 7, 10], '11': [2, 3, 9, 10]} 
+ minimality set with heads: {'0': [1, 10], '2': [2, 9], '3': [0], '4': [11], '5': [5, 8, 9], '6': [9], '7': [3], '8': [], '9': [6, 7, 9], '10': [0, 1, 2, 6, 7, 10], '11': [2, 3, 9, 10]}
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(7, 3)_minimality_set_without_(7, 3)_minimality_set_without on the IOI dataset with template BABA and 8192 samples.
+Retrieving results from previous computations.
+paper_ablation_(7, 3)_minimality_set_without_(7, 3)_minimality_set_without metrics on 8192 samples | Loss : 2.5944 | Accuracy : 0.22 | Logit difference : -0.42"
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(7, 3)_minimality_set_with_(7, 3)_minimality_set_with on the IOI dataset with template BABA and 8192 samples.
+Retrieving results from previous computations.
+paper_ablation_(7, 3)_minimality_set_with_(7, 3)_minimality_set_with metrics on 8192 samples | Loss : 2.4945 | Accuracy : 0.28 | Logit difference : -0.15"
+Minimality results for head  (7, 3)
+Without head :  -0.4188799634575844
+With head :  -0.14593715779483318
+Difference in logit difference :  0.2729428056627512
+A so far :  0.2729428056627512
+Dealing with head (7, 9) for minimality computation.
+for head (7, 9), 
+ minimality set without heads: {'0': [1, 10], '2': [2, 9], '3': [0], '4': [11], '5': [5, 8, 9], '6': [9], '7': [], '8': [], '9': [6, 7, 9], '10': [0, 1, 2, 6, 7, 10], '11': [2, 3, 9, 10]} 
+ minimality set with heads: {'0': [1, 10], '2': [2, 9], '3': [0], '4': [11], '5': [5, 8, 9], '6': [9], '7': [9], '8': [], '9': [6, 7, 9], '10': [0, 1, 2, 6, 7, 10], '11': [2, 3, 9, 10]}
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(7, 9)_minimality_set_without_(7, 9)_minimality_set_without on the IOI dataset with template BABA and 8192 samples.
+Retrieving results from previous computations.
+paper_ablation_(7, 9)_minimality_set_without_(7, 9)_minimality_set_without metrics on 8192 samples | Loss : 2.5944 | Accuracy : 0.22 | Logit difference : -0.42"
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(7, 9)_minimality_set_with_(7, 9)_minimality_set_with on the IOI dataset with template BABA and 8192 samples.
+Retrieving results from previous computations.
+paper_ablation_(7, 9)_minimality_set_with_(7, 9)_minimality_set_with metrics on 8192 samples | Loss : 1.9152 | Accuracy : 0.60 | Logit difference : 0.67"
+Minimality results for head  (7, 9)
+Without head :  -0.4188799634575844
+With head :  0.6691017635166645
+Difference in logit difference :  1.0879817269742489
+A so far :  0.2729428056627512
+Dealing with head (8, 6) for minimality computation.
+for head (8, 6), 
+ minimality set without heads: {'0': [1, 10], '2': [2, 9], '3': [0], '4': [11], '5': [5, 8, 9], '6': [9], '7': [], '8': [], '9': [6, 7, 9], '10': [0, 1, 2, 6, 7, 10], '11': [2, 3, 9, 10]} 
+ minimality set with heads: {'0': [1, 10], '2': [2, 9], '3': [0], '4': [11], '5': [5, 8, 9], '6': [9], '7': [], '8': [6], '9': [6, 7, 9], '10': [0, 1, 2, 6, 7, 10], '11': [2, 3, 9, 10]}
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(8, 6)_minimality_set_without_(8, 6)_minimality_set_without on the IOI dataset with template BABA and 8192 samples.
+Retrieving results from previous computations.
+paper_ablation_(8, 6)_minimality_set_without_(8, 6)_minimality_set_without metrics on 8192 samples | Loss : 2.5944 | Accuracy : 0.22 | Logit difference : -0.42"
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(8, 6)_minimality_set_with_(8, 6)_minimality_set_with on the IOI dataset with template BABA and 8192 samples.
+Retrieving results from previous computations.
+paper_ablation_(8, 6)_minimality_set_with_(8, 6)_minimality_set_with metrics on 8192 samples | Loss : 1.4866 | Accuracy : 0.75 | Logit difference : 0.90"
+Minimality results for head  (8, 6)
+Without head :  -0.4188799634575844
+With head :  0.900421466678381
+Difference in logit difference :  1.3193014301359653
+A so far :  0.2729428056627512
+Dealing with head (8, 10) for minimality computation.
+for head (8, 10), 
+ minimality set without heads: {'0': [1, 10], '2': [2, 9], '3': [0], '4': [11], '5': [5, 8, 9], '6': [9], '7': [], '8': [], '9': [6, 7, 9], '10': [0, 1, 2, 6, 7, 10], '11': [2, 3, 9, 10]} 
+ minimality set with heads: {'0': [1, 10], '2': [2, 9], '3': [0], '4': [11], '5': [5, 8, 9], '6': [9], '7': [], '8': [10], '9': [6, 7, 9], '10': [0, 1, 2, 6, 7, 10], '11': [2, 3, 9, 10]}
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(8, 10)_minimality_set_without_(8, 10)_minimality_set_without on the IOI dataset with template BABA and 8192 samples.
+Retrieving results from previous computations.
+paper_ablation_(8, 10)_minimality_set_without_(8, 10)_minimality_set_without metrics on 8192 samples | Loss : 2.5944 | Accuracy : 0.22 | Logit difference : -0.42"
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(8, 10)_minimality_set_with_(8, 10)_minimality_set_with on the IOI dataset with template BABA and 8192 samples.
+Retrieving results from previous computations.
+paper_ablation_(8, 10)_minimality_set_with_(8, 10)_minimality_set_with metrics on 8192 samples | Loss : 2.5678 | Accuracy : 0.34 | Logit difference : 0.39"
+Minimality results for head  (8, 10)
+Without head :  -0.4188799634575844
+With head :  0.38723307102918625
+Difference in logit difference :  0.8061130344867706
+A so far :  0.2729428056627512
+Dealing with head (5, 5) for minimality computation.
+for head (5, 5), 
+ minimality set without heads: {'0': [1, 10], '2': [2, 9], '3': [0], '4': [11], '5': [], '6': [], '7': [3, 9], '8': [6, 10], '9': [6, 7, 9], '10': [0, 1, 2, 6, 10], '11': [2, 3, 9]} 
+ minimality set with heads: {'0': [1, 10], '2': [2, 9], '3': [0], '4': [11], '5': [5], '6': [], '7': [3, 9], '8': [6, 10], '9': [6, 7, 9], '10': [0, 1, 2, 6, 10], '11': [2, 3, 9]}
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(5, 5)_minimality_set_without_(5, 5)_minimality_set_without on the IOI dataset with template BABA and 8192 samples.
+Retrieving results from previous computations.
+paper_ablation_(5, 5)_minimality_set_without_(5, 5)_minimality_set_without metrics on 8192 samples | Loss : 1.3435 | Accuracy : 0.67 | Logit difference : 0.87"
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(5, 5)_minimality_set_with_(5, 5)_minimality_set_with on the IOI dataset with template BABA and 8192 samples.
+Retrieving results from previous computations.
+paper_ablation_(5, 5)_minimality_set_with_(5, 5)_minimality_set_with metrics on 8192 samples | Loss : 0.3643 | Accuracy : 0.99 | Logit difference : 4.65"
+Minimality results for head  (5, 5)
+Without head :  0.8704399690032005
+With head :  4.646573334932327
+Difference in logit difference :  3.7761333659291267
+A so far :  0.2729428056627512
+Dealing with head (5, 8) for minimality computation.
+for head (5, 8), 
+ minimality set without heads: {'0': [1, 10], '2': [2, 9], '3': [0], '4': [11], '5': [], '6': [], '7': [3, 9], '8': [6, 10], '9': [6, 7, 9], '10': [0, 1, 2, 6, 7, 10], '11': [2, 3, 9, 10]} 
+ minimality set with heads: {'0': [1, 10], '2': [2, 9], '3': [0], '4': [11], '5': [8], '6': [], '7': [3, 9], '8': [6, 10], '9': [6, 7, 9], '10': [0, 1, 2, 6, 7, 10], '11': [2, 3, 9, 10]}
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(5, 8)_minimality_set_without_(5, 8)_minimality_set_without on the IOI dataset with template BABA and 8192 samples.
+Retrieving results from previous computations.
+paper_ablation_(5, 8)_minimality_set_without_(5, 8)_minimality_set_without metrics on 8192 samples | Loss : 2.1157 | Accuracy : 0.52 | Logit difference : 1.03"
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(5, 8)_minimality_set_with_(5, 8)_minimality_set_with on the IOI dataset with template BABA and 8192 samples.
+Retrieving results from previous computations.
+paper_ablation_(5, 8)_minimality_set_with_(5, 8)_minimality_set_with metrics on 8192 samples | Loss : 1.9395 | Accuracy : 0.59 | Logit difference : 1.18"
+Minimality results for head  (5, 8)
+Without head :  1.030116442590952
+With head :  1.1815595030784607
+Difference in logit difference :  0.15144306048750877
+A so far :  0.15144306048750877
+Dealing with head (5, 9) for minimality computation.
+for head (5, 9), 
+ minimality set without heads: {'0': [1, 10], '2': [2, 9], '3': [0], '4': [11], '5': [], '6': [], '7': [3, 9], '8': [6, 10], '9': [6, 7, 9], '10': [0, 1, 2, 6, 7, 10], '11': [2, 3, 9, 10]} 
+ minimality set with heads: {'0': [1, 10], '2': [2, 9], '3': [0], '4': [11], '5': [9], '6': [], '7': [3, 9], '8': [6, 10], '9': [6, 7, 9], '10': [0, 1, 2, 6, 7, 10], '11': [2, 3, 9, 10]}
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(5, 9)_minimality_set_without_(5, 9)_minimality_set_without on the IOI dataset with template BABA and 8192 samples.
+Retrieving results from previous computations.
+paper_ablation_(5, 9)_minimality_set_without_(5, 9)_minimality_set_without metrics on 8192 samples | Loss : 2.1157 | Accuracy : 0.52 | Logit difference : 1.03"
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(5, 9)_minimality_set_with_(5, 9)_minimality_set_with on the IOI dataset with template BABA and 8192 samples.
+Retrieving results from previous computations.
+paper_ablation_(5, 9)_minimality_set_with_(5, 9)_minimality_set_with metrics on 8192 samples | Loss : 2.4961 | Accuracy : 0.35 | Logit difference : 0.17"
+Minimality results for head  (5, 9)
+Without head :  1.030116442590952
+With head :  0.16510742995887995
+Difference in logit difference :  0.865009012632072
+A so far :  0.15144306048750877
+Dealing with head (6, 9) for minimality computation.
+for head (6, 9), 
+ minimality set without heads: {'0': [1, 10], '2': [2, 9], '3': [0], '4': [11], '5': [], '6': [], '7': [3, 9], '8': [6, 10], '9': [6, 7, 9], '10': [0, 1, 2, 6, 10], '11': [2, 3, 9]} 
+ minimality set with heads: {'0': [1, 10], '2': [2, 9], '3': [0], '4': [11], '5': [], '6': [9], '7': [3, 9], '8': [6, 10], '9': [6, 7, 9], '10': [0, 1, 2, 6, 10], '11': [2, 3, 9]}
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(6, 9)_minimality_set_without_(6, 9)_minimality_set_without on the IOI dataset with template BABA and 8192 samples.
+Retrieving results from previous computations.
+paper_ablation_(6, 9)_minimality_set_without_(6, 9)_minimality_set_without metrics on 8192 samples | Loss : 1.3435 | Accuracy : 0.67 | Logit difference : 0.87"
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(6, 9)_minimality_set_with_(6, 9)_minimality_set_with on the IOI dataset with template BABA and 8192 samples.
+Retrieving results from previous computations.
+paper_ablation_(6, 9)_minimality_set_with_(6, 9)_minimality_set_with metrics on 8192 samples | Loss : 0.4066 | Accuracy : 0.99 | Logit difference : 4.42"
+Minimality results for head  (6, 9)
+Without head :  0.8704399690032005
+With head :  4.421561688184738
+Difference in logit difference :  3.5511217191815376
+A so far :  0.15144306048750877
+Dealing with head (0, 1) for minimality computation.
+for head (0, 1), 
+ minimality set without heads: {'0': [], '2': [2, 9], '3': [], '4': [11], '5': [5, 8, 9], '6': [9], '7': [3, 9], '8': [6, 10], '9': [6, 7, 9], '10': [0, 1, 2, 6, 7, 10], '11': [2, 3, 9, 10]} 
+ minimality set with heads: {'0': [1], '2': [2, 9], '3': [], '4': [11], '5': [5, 8, 9], '6': [9], '7': [3, 9], '8': [6, 10], '9': [6, 7, 9], '10': [0, 1, 2, 6, 7, 10], '11': [2, 3, 9, 10]}
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(0, 1)_minimality_set_without_(0, 1)_minimality_set_without on the IOI dataset with template BABA and 8192 samples.
+Retrieving results from previous computations.
+paper_ablation_(0, 1)_minimality_set_without_(0, 1)_minimality_set_without metrics on 8192 samples | Loss : 2.0378 | Accuracy : 0.58 | Logit difference : 0.95"
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(0, 1)_minimality_set_with_(0, 1)_minimality_set_with on the IOI dataset with template BABA and 8192 samples.
+Retrieving results from previous computations.
+paper_ablation_(0, 1)_minimality_set_with_(0, 1)_minimality_set_with metrics on 8192 samples | Loss : 1.2031 | Accuracy : 0.92 | Logit difference : 2.90"
+Minimality results for head  (0, 1)
+Without head :  0.9529819190502167
+With head :  2.903953969478607
+Difference in logit difference :  1.9509720504283905
+A so far :  0.15144306048750877
+Dealing with head (0, 10) for minimality computation.
+for head (0, 10), 
+ minimality set without heads: {'0': [], '2': [2, 9], '3': [], '4': [11], '5': [5, 8, 9], '6': [9], '7': [3, 9], '8': [6, 10], '9': [6, 7, 9], '10': [0, 1, 2, 6, 7, 10], '11': [2, 3, 9, 10]} 
+ minimality set with heads: {'0': [10], '2': [2, 9], '3': [], '4': [11], '5': [5, 8, 9], '6': [9], '7': [3, 9], '8': [6, 10], '9': [6, 7, 9], '10': [0, 1, 2, 6, 7, 10], '11': [2, 3, 9, 10]}
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(0, 10)_minimality_set_without_(0, 10)_minimality_set_without on the IOI dataset with template BABA and 8192 samples.
+Retrieving results from previous computations.
+paper_ablation_(0, 10)_minimality_set_without_(0, 10)_minimality_set_without metrics on 8192 samples | Loss : 2.0378 | Accuracy : 0.58 | Logit difference : 0.95"
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(0, 10)_minimality_set_with_(0, 10)_minimality_set_with on the IOI dataset with template BABA and 8192 samples.
+Retrieving results from previous computations.
+paper_ablation_(0, 10)_minimality_set_with_(0, 10)_minimality_set_with metrics on 8192 samples | Loss : 1.1561 | Accuracy : 0.93 | Logit difference : 2.81"
+Minimality results for head  (0, 10)
+Without head :  0.9529819190502167
+With head :  2.8064710944890976
+Difference in logit difference :  1.853489175438881
+A so far :  0.15144306048750877
+Dealing with head (3, 0) for minimality computation.
+for head (3, 0), 
+ minimality set without heads: {'0': [], '2': [2, 9], '3': [], '4': [11], '5': [5, 8, 9], '6': [9], '7': [3, 9], '8': [6, 10], '9': [6, 7, 9], '10': [0, 1, 2, 6, 7, 10], '11': [2, 3, 9, 10]} 
+ minimality set with heads: {'0': [], '2': [2, 9], '3': [0], '4': [11], '5': [5, 8, 9], '6': [9], '7': [3, 9], '8': [6, 10], '9': [6, 7, 9], '10': [0, 1, 2, 6, 7, 10], '11': [2, 3, 9, 10]}
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(3, 0)_minimality_set_without_(3, 0)_minimality_set_without on the IOI dataset with template BABA and 8192 samples.
+Retrieving results from previous computations.
+paper_ablation_(3, 0)_minimality_set_without_(3, 0)_minimality_set_without metrics on 8192 samples | Loss : 2.0378 | Accuracy : 0.58 | Logit difference : 0.95"
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(3, 0)_minimality_set_with_(3, 0)_minimality_set_with on the IOI dataset with template BABA and 8192 samples.
+Retrieving results from previous computations.
+paper_ablation_(3, 0)_minimality_set_with_(3, 0)_minimality_set_with metrics on 8192 samples | Loss : 1.6414 | Accuracy : 0.76 | Logit difference : 1.88"
+Minimality results for head  (3, 0)
+Without head :  0.9529819190502167
+With head :  1.880960762500763
+Difference in logit difference :  0.9279788434505463
+A so far :  0.15144306048750877
+Dealing with head (2, 2) for minimality computation.
+for head (2, 2), 
+ minimality set without heads: {'0': [1, 10], '2': [], '3': [0], '4': [], '5': [5, 8, 9], '6': [9], '7': [3, 9], '8': [6, 10], '9': [6, 7, 9], '10': [0, 1, 2, 6, 7, 10], '11': [2, 3, 9, 10]} 
+ minimality set with heads: {'0': [1, 10], '2': [2], '3': [0], '4': [], '5': [5, 8, 9], '6': [9], '7': [3, 9], '8': [6, 10], '9': [6, 7, 9], '10': [0, 1, 2, 6, 7, 10], '11': [2, 3, 9, 10]}
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(2, 2)_minimality_set_without_(2, 2)_minimality_set_without on the IOI dataset with template BABA and 8192 samples.
+Retrieving results from previous computations.
+paper_ablation_(2, 2)_minimality_set_without_(2, 2)_minimality_set_without metrics on 8192 samples | Loss : 1.6480 | Accuracy : 0.74 | Logit difference : 1.40"
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(2, 2)_minimality_set_with_(2, 2)_minimality_set_with on the IOI dataset with template BABA and 8192 samples.
+Retrieving results from previous computations.
+paper_ablation_(2, 2)_minimality_set_with_(2, 2)_minimality_set_with metrics on 8192 samples | Loss : 1.3343 | Accuracy : 0.87 | Logit difference : 2.40"
+Minimality results for head  (2, 2)
+Without head :  1.3964371159672737
+With head :  2.402036041021347
+Difference in logit difference :  1.0055989250540733
+A so far :  0.15144306048750877
+Dealing with head (2, 9) for minimality computation.
+for head (2, 9), 
+ minimality set without heads: {'0': [1, 10], '2': [], '3': [0], '4': [], '5': [5, 8, 9], '6': [9], '7': [3, 9], '8': [6, 10], '9': [6, 7, 9], '10': [0, 1, 2, 6, 7, 10], '11': [2, 3, 9, 10]} 
+ minimality set with heads: {'0': [1, 10], '2': [9], '3': [0], '4': [], '5': [5, 8, 9], '6': [9], '7': [3, 9], '8': [6, 10], '9': [6, 7, 9], '10': [0, 1, 2, 6, 7, 10], '11': [2, 3, 9, 10]}
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(2, 9)_minimality_set_without_(2, 9)_minimality_set_without on the IOI dataset with template BABA and 8192 samples.
+Retrieving results from previous computations.
+paper_ablation_(2, 9)_minimality_set_without_(2, 9)_minimality_set_without metrics on 8192 samples | Loss : 1.6480 | Accuracy : 0.74 | Logit difference : 1.40"
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(2, 9)_minimality_set_with_(2, 9)_minimality_set_with on the IOI dataset with template BABA and 8192 samples.
+Retrieving results from previous computations.
+paper_ablation_(2, 9)_minimality_set_with_(2, 9)_minimality_set_with metrics on 8192 samples | Loss : 1.4971 | Accuracy : 0.81 | Logit difference : 1.85"
+Minimality results for head  (2, 9)
+Without head :  1.3964371159672737
+With head :  1.8478833884000778
+Difference in logit difference :  0.4514462724328041
+A so far :  0.15144306048750877
+Dealing with head (4, 11) for minimality computation.
+for head (4, 11), 
+ minimality set without heads: {'0': [1, 10], '2': [], '3': [0], '4': [], '5': [5, 8, 9], '6': [9], '7': [3, 9], '8': [6, 10], '9': [6, 7, 9], '10': [0, 1, 2, 6, 7, 10], '11': [2, 3, 9, 10]} 
+ minimality set with heads: {'0': [1, 10], '2': [], '3': [0], '4': [11], '5': [5, 8, 9], '6': [9], '7': [3, 9], '8': [6, 10], '9': [6, 7, 9], '10': [0, 1, 2, 6, 7, 10], '11': [2, 3, 9, 10]}
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(4, 11)_minimality_set_without_(4, 11)_minimality_set_without on the IOI dataset with template BABA and 8192 samples.
+Retrieving results from previous computations.
+paper_ablation_(4, 11)_minimality_set_without_(4, 11)_minimality_set_without metrics on 8192 samples | Loss : 1.6480 | Accuracy : 0.74 | Logit difference : 1.40"
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(4, 11)_minimality_set_with_(4, 11)_minimality_set_with on the IOI dataset with template BABA and 8192 samples.
+Retrieving results from previous computations.
+paper_ablation_(4, 11)_minimality_set_with_(4, 11)_minimality_set_with metrics on 8192 samples | Loss : 1.1591 | Accuracy : 0.92 | Logit difference : 3.14"
+Minimality results for head  (4, 11)
+Without head :  1.3964371159672737
+With head :  3.1417273432016373
+Difference in logit difference :  1.7452902272343636
+A so far :  0.15144306048750877
+Dealing with head (10, 10) for minimality computation.
+for head (10, 10), 
+ minimality set without heads: {'0': [1, 10], '2': [2, 9], '3': [0], '4': [11], '5': [5, 8, 9], '6': [9], '7': [3, 9], '8': [6, 10], '9': [], '10': [7], '11': [10]} 
+ minimality set with heads: {'0': [1, 10], '2': [2, 9], '3': [0], '4': [11], '5': [5, 8, 9], '6': [9], '7': [3, 9], '8': [6, 10], '9': [], '10': [7, 10], '11': [10]}
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(10, 10)_minimality_set_without_(10, 10)_minimality_set_without on the IOI dataset with template BABA and 8192 samples.
+paper_ablation_(10, 10)_minimality_set_without_(10, 10)_minimality_set_without metrics on 8192 samples | Loss : 7.8435 | Accuracy : 0.00 | Logit difference : 0.95"
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(10, 10)_minimality_set_with_(10, 10)_minimality_set_with on the IOI dataset with template BABA and 8192 samples.
+paper_ablation_(10, 10)_minimality_set_with_(10, 10)_minimality_set_with metrics on 8192 samples | Loss : 6.6127 | Accuracy : 0.00 | Logit difference : 1.72"
+Minimality results for head  (10, 10)
+Without head :  0.9494155272841454
+With head :  1.722696714103222
+Difference in logit difference :  0.7732811868190765
+A so far :  0.15144306048750877
+Dealing with head (10, 2) for minimality computation.
+for head (10, 2), 
+ minimality set without heads: {'0': [1, 10], '2': [2, 9], '3': [0], '4': [11], '5': [5, 8, 9], '6': [9], '7': [3, 9], '8': [6, 10], '9': [], '10': [7], '11': [10]} 
+ minimality set with heads: {'0': [1, 10], '2': [2, 9], '3': [0], '4': [11], '5': [5, 8, 9], '6': [9], '7': [3, 9], '8': [6, 10], '9': [], '10': [2, 7], '11': [10]}
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(10, 2)_minimality_set_without_(10, 2)_minimality_set_without on the IOI dataset with template BABA and 8192 samples.
+paper_ablation_(10, 2)_minimality_set_without_(10, 2)_minimality_set_without metrics on 8192 samples | Loss : 7.8435 | Accuracy : 0.00 | Logit difference : 0.95"
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(10, 2)_minimality_set_with_(10, 2)_minimality_set_with on the IOI dataset with template BABA and 8192 samples.
+paper_ablation_(10, 2)_minimality_set_with_(10, 2)_minimality_set_with metrics on 8192 samples | Loss : 6.6022 | Accuracy : 0.00 | Logit difference : 1.54"
+Minimality results for head  (10, 2)
+Without head :  0.9494155272841454
+With head :  1.544277437031269
+Difference in logit difference :  0.5948619097471237
+A so far :  0.15144306048750877
+Dealing with head (11, 2) for minimality computation.
+for head (11, 2), 
+ minimality set without heads: {'0': [1, 10], '2': [2, 9], '3': [0], '4': [11], '5': [5, 8, 9], '6': [9], '7': [3, 9], '8': [6, 10], '9': [], '10': [7], '11': [10]} 
+ minimality set with heads: {'0': [1, 10], '2': [2, 9], '3': [0], '4': [11], '5': [5, 8, 9], '6': [9], '7': [3, 9], '8': [6, 10], '9': [], '10': [7], '11': [2, 10]}
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(11, 2)_minimality_set_without_(11, 2)_minimality_set_without on the IOI dataset with template BABA and 8192 samples.
+paper_ablation_(11, 2)_minimality_set_without_(11, 2)_minimality_set_without metrics on 8192 samples | Loss : 7.8435 | Accuracy : 0.00 | Logit difference : 0.95"
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(11, 2)_minimality_set_with_(11, 2)_minimality_set_with on the IOI dataset with template BABA and 8192 samples.
+paper_ablation_(11, 2)_minimality_set_with_(11, 2)_minimality_set_with metrics on 8192 samples | Loss : 5.4353 | Accuracy : 0.00 | Logit difference : 1.85"
+Minimality results for head  (11, 2)
+Without head :  0.9494155272841454
+With head :  1.85115347802639
+Difference in logit difference :  0.9017379507422447
+A so far :  0.15144306048750877
+Dealing with head (10, 6) for minimality computation.
+for head (10, 6), 
+ minimality set without heads: {'0': [1, 10], '2': [2, 9], '3': [0], '4': [11], '5': [5, 8, 9], '6': [9], '7': [3, 9], '8': [6, 10], '9': [], '10': [7], '11': [10]} 
+ minimality set with heads: {'0': [1, 10], '2': [2, 9], '3': [0], '4': [11], '5': [5, 8, 9], '6': [9], '7': [3, 9], '8': [6, 10], '9': [], '10': [6, 7], '11': [10]}
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(10, 6)_minimality_set_without_(10, 6)_minimality_set_without on the IOI dataset with template BABA and 8192 samples.
+paper_ablation_(10, 6)_minimality_set_without_(10, 6)_minimality_set_without metrics on 8192 samples | Loss : 7.8435 | Accuracy : 0.00 | Logit difference : 0.95"
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(10, 6)_minimality_set_with_(10, 6)_minimality_set_with on the IOI dataset with template BABA and 8192 samples.
+paper_ablation_(10, 6)_minimality_set_with_(10, 6)_minimality_set_with metrics on 8192 samples | Loss : 6.9548 | Accuracy : 0.00 | Logit difference : 1.45"
+Minimality results for head  (10, 6)
+Without head :  0.9494155272841454
+With head :  1.4459786787629128
+Difference in logit difference :  0.4965631514787674
+A so far :  0.15144306048750877
+Dealing with head (10, 1) for minimality computation.
+for head (10, 1), 
+ minimality set without heads: {'0': [1, 10], '2': [2, 9], '3': [0], '4': [11], '5': [5, 8, 9], '6': [9], '7': [3, 9], '8': [6, 10], '9': [], '10': [7], '11': [10]} 
+ minimality set with heads: {'0': [1, 10], '2': [2, 9], '3': [0], '4': [11], '5': [5, 8, 9], '6': [9], '7': [3, 9], '8': [6, 10], '9': [], '10': [1, 7], '11': [10]}
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(10, 1)_minimality_set_without_(10, 1)_minimality_set_without on the IOI dataset with template BABA and 8192 samples.
+paper_ablation_(10, 1)_minimality_set_without_(10, 1)_minimality_set_without metrics on 8192 samples | Loss : 7.8435 | Accuracy : 0.00 | Logit difference : 0.95"
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(10, 1)_minimality_set_with_(10, 1)_minimality_set_with on the IOI dataset with template BABA and 8192 samples.
+paper_ablation_(10, 1)_minimality_set_with_(10, 1)_minimality_set_with metrics on 8192 samples | Loss : 7.2632 | Accuracy : 0.00 | Logit difference : 1.20"
+Minimality results for head  (10, 1)
+Without head :  0.9494155272841454
+With head :  1.200061246752739
+Difference in logit difference :  0.2506457194685936
+A so far :  0.15144306048750877
+Dealing with head (9, 7) for minimality computation.
+for head (9, 7), 
+ minimality set without heads: {'0': [1, 10], '2': [2, 9], '3': [0], '4': [11], '5': [5, 8, 9], '6': [9], '7': [3, 9], '8': [6, 10], '9': [], '10': [7], '11': [10]} 
+ minimality set with heads: {'0': [1, 10], '2': [2, 9], '3': [0], '4': [11], '5': [5, 8, 9], '6': [9], '7': [3, 9], '8': [6, 10], '9': [7], '10': [7], '11': [10]}
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(9, 7)_minimality_set_without_(9, 7)_minimality_set_without on the IOI dataset with template BABA and 8192 samples.
+paper_ablation_(9, 7)_minimality_set_without_(9, 7)_minimality_set_without metrics on 8192 samples | Loss : 7.8435 | Accuracy : 0.00 | Logit difference : 0.95"
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(9, 7)_minimality_set_with_(9, 7)_minimality_set_with on the IOI dataset with template BABA and 8192 samples.
+paper_ablation_(9, 7)_minimality_set_with_(9, 7)_minimality_set_with metrics on 8192 samples | Loss : 7.8870 | Accuracy : 0.00 | Logit difference : 1.16"
+Minimality results for head  (9, 7)
+Without head :  0.9494155272841454
+With head :  1.1587490141391754
+Difference in logit difference :  0.20933348685503006
+A so far :  0.15144306048750877
+Dealing with head (11, 9) for minimality computation.
+for head (11, 9), 
+ minimality set without heads: {'0': [1, 10], '2': [2, 9], '3': [0], '4': [11], '5': [5, 8, 9], '6': [9], '7': [3, 9], '8': [6, 10], '9': [], '10': [7], '11': [10]} 
+ minimality set with heads: {'0': [1, 10], '2': [2, 9], '3': [0], '4': [11], '5': [5, 8, 9], '6': [9], '7': [3, 9], '8': [6, 10], '9': [], '10': [7], '11': [9, 10]}
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(11, 9)_minimality_set_without_(11, 9)_minimality_set_without on the IOI dataset with template BABA and 8192 samples.
+paper_ablation_(11, 9)_minimality_set_without_(11, 9)_minimality_set_without metrics on 8192 samples | Loss : 7.8435 | Accuracy : 0.00 | Logit difference : 0.95"
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(11, 9)_minimality_set_with_(11, 9)_minimality_set_with on the IOI dataset with template BABA and 8192 samples.
+paper_ablation_(11, 9)_minimality_set_with_(11, 9)_minimality_set_with metrics on 8192 samples | Loss : 7.5025 | Accuracy : 0.00 | Logit difference : 0.91"
+Minimality results for head  (11, 9)
+Without head :  0.9494155272841454
+With head :  0.9147580713033676
+Difference in logit difference :  0.03465745598077774
+A so far :  0.03465745598077774
+Dealing with head (11, 3) for minimality computation.
+for head (11, 3), 
+ minimality set without heads: {'0': [1, 10], '2': [2, 9], '3': [0], '4': [11], '5': [5, 8, 9], '6': [9], '7': [3, 9], '8': [6, 10], '9': [7], '10': [1, 2, 6, 7], '11': [2, 9, 10]} 
+ minimality set with heads: {'0': [1, 10], '2': [2, 9], '3': [0], '4': [11], '5': [5, 8, 9], '6': [9], '7': [3, 9], '8': [6, 10], '9': [7], '10': [1, 2, 6, 7], '11': [2, 3, 9, 10]}
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(11, 3)_minimality_set_without_(11, 3)_minimality_set_without on the IOI dataset with template BABA and 8192 samples.
+paper_ablation_(11, 3)_minimality_set_without_(11, 3)_minimality_set_without metrics on 8192 samples | Loss : 3.1498 | Accuracy : 0.16 | Logit difference : 2.94"
+----------------------------------------------------------------------------------------------------
+Evaluating paper_ablation_(11, 3)_minimality_set_with_(11, 3)_minimality_set_with on the IOI dataset with template BABA and 8192 samples.
+paper_ablation_(11, 3)_minimality_set_with_(11, 3)_minimality_set_with metrics on 8192 samples | Loss : 3.0276 | Accuracy : 0.21 | Logit difference : 2.94"
+Minimality results for head  (11, 3)
+Without head :  2.935946062207222
+With head :  2.9382560402154922
+Difference in logit difference :  0.0023099780082702637
+A so far :  0.0023099780082702637
+Saved minimality results to results/minimality/minimality_BABA_T=0.json
