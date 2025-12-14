@@ -259,6 +259,11 @@ ANIMALS = [
 ]
 
 
+O_position_table ={
+    "BABA": [2]
+}
+
+
 def multiple_replace(dict, text):
     # from: https://stackoverflow.com/questions/15175142/how-can-i-do-multiple-substitutions-using-regex
     # Create a regular expression from the dictionary keys
@@ -775,6 +780,11 @@ class IOIDataset:
 
         self.prefixes = prefixes
         self.prompt_type = prompt_type
+        try: 
+            self.O_position = O_position_table[prompt_type][template_idx]
+        except:
+            print("[Object] position for this template was not referenced in the table, see ioi_dataset, O_position_table")
+        #TODO make this multiple template - compatible
         if prompts is None:
             self.ioi_prompts = gen_prompt_uniform(  # a list of dict of the form {"text": "Alice and Bob bla bla. Bob gave bla to Alice", "IO": "Alice", "S": "Bob"}
                 self.templates,

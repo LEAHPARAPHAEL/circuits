@@ -1,9 +1,3 @@
-{
-    "BABA": {
-        "T=0": {
-            "Count": 8192,
-            "Loss": 0.7583443224430084,
-            "Accuracy": 0.96142578125
-        }
-    }
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:594b0dd311f6446bda9fd67205ad963ba88f0afc71c859226fae3b511ab4b1db
+size 206
