@@ -77,109 +77,50 @@ class AblatableGPT2Model(GPT2LMHeadModel):
             block.mlp.reset_accumulation()
 
 
-
-    def update_accumulation_data(self, 
-                                current_sample_index : int, 
-                                abc_data_path : str, 
-                                abc_data : dict) -> tuple[dict, str]:
+    
+    def stop_accumulation(self) -> dict:
 
         '''
-        Saves the accumulated sum of outputs from the ABC dataset for each attention head and
-        MLP layer. Removes all previous checkpoints.
+        Returns the accumulated outputs in the atention and MLP layers and resets the accumulation buffers.
         
-        :param current_sample_index: The index in the dataset below which the sum of the outputs has 
-                                     already been accumulated. 
-        :type current_sample_index: int
-        :param abc_data_path: The previous file containing the sum over the ABC dataset.
-        :type abc_data_path: str
-        :param abc_data: The dict object containing the tensors. 
-        :type abc_data: dict
-        :return: The updated dictionary and the filepath where it has been saved. 
-        :rtype: tuple[dict, str]
+        :return: A dictionary containing for each block the attention and MLP layers activations.
+        :rtype: dict
         '''
 
-        ##########################################################################
-        # Creates the dict if no previous checkpoint existed
-        ##########################################################################
-
-        if abc_data is None:
-
-            abc_data = {"last_sample_index" : current_sample_index}
-            for i, block in enumerate(self.transformer.h):
+        data = {}
+        for i, block in enumerate(self.transformer.h):
                 
-                abc_data[str(i)] = {
-                    "attention" : block.attn.accumulation_outputs,
-                    "mlp" : block.mlp.accumulation_outputs
-                }
+            data[str(i)] = {
+                "attention" : block.attn.accumulation_outputs,
+                "mlp" : block.mlp.accumulation_outputs
+            }
 
-                block.attn.reset_accumulation()
-                block.mlp.reset_accumulation()
+            block.attn.reset_accumulation()
+            block.mlp.reset_accumulation()
 
-
-        ##########################################################################
-        # Otherwise, simply adds the accumulated outputs 
-        ##########################################################################
-
-        else:
-
-            abc_data["last_sample_index"] = current_sample_index
-            for i, block in enumerate(self.transformer.h):
-                
-                abc_data[str(i)]["attention"] += block.attn.accumulation_outputs
-                abc_data[str(i)]["mlp"] += block.mlp.accumulation_outputs
-
-                block.attn.reset_accumulation()
-                block.mlp.reset_accumulation()
-
-
-        ##########################################################################
-        # Checkpoint logic for the new checkpoint path
-        ##########################################################################
-
-        old_sample_index = abc_data_path.split("_")[-1].replace(".pth", "")
-        if int(old_sample_index) != 0:
-            os.remove(abc_data_path)
-
-        new_abc_data_path = re.sub(f"{old_sample_index}.pth", f"{str(current_sample_index)}.pth", abc_data_path)
-        torch.save(abc_data, new_abc_data_path)
-
-        print(f"Successfully saved ABC data in {new_abc_data_path}")
-
-
-        return abc_data, new_abc_data_path
+        return data
 
 
 
-    def ablate(self, abc_data_path : str, ablation_config_path : str, device : str) -> None:
+    def ablate(self, abc_data : str, ablation_config : str, device : str) -> None:
         '''
         Replaces the activations at indices specified in the configuration file
         by their means over the ABC dataset. 
         
-        :param abc_data_path: The path to the ABC data to use for ablation.
-        :type abc_data_path: str
-        :param ablation_config_path: The path to the configuration file to use for ablation.
-        :type ablation_config_path: str
-        :param device : The device on which the data should be loaded
-        :type device : str
+        :param abc_data: Sums of activations of attention and MLP layers over the ABC dataset.
+        :type abc_data: str
+        :param ablation_config: Configuration for mean ablation.
+        :type ablation_config: str
+        :param device: Device on which the weights should be ported.
+        :type device: str
         '''
+        
 
         ##########################################################################
-        # Loads the abc means and config file
+        # Ablation config
         ##########################################################################
 
-        if os.path.isfile(abc_data_path):
-            abc_data = torch.load(abc_data_path, map_location = device)
-        else:
-            raise(FileNotFoundError("The specified checkpoint file does not exist."))
-
-        if os.path.isfile(ablation_config_path):
-            ablation_config = json.load(open(ablation_config_path, "r"))
-        else:
-            raise(FileNotFoundError("The specified config file does not exist."))
-
-        self.circuit_name = ablation_config["name"]
-
-        abc_dataset_size = float(abc_data["last_sample_index"])
+        abc_dataset_size = float(abc_data["size"])
 
         ablation_attention_heads_config = ablation_config["attention_heads"]
 
