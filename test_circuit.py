@@ -13,8 +13,7 @@ from compute_abc_data import compute_abc_data
 from tqdm import tqdm
 
 
-def run_ioi_task(model, loader, criterion, device, args, size, template_key,circuit_name):
-
+def setup_dictionary(args, template_key,circuit_name):
     results_path = os.path.join(args.results_folder, f'{circuit_name}.json')
 
     if os.path.isfile(results_path):
@@ -30,7 +29,12 @@ def run_ioi_task(model, loader, criterion, device, args, size, template_key,circ
         do_need_to_compute = True
     else:
         do_need_to_compute = False
+    return log, results_path, do_need_to_compute
 
+
+def run_ioi_task(model, loader, criterion, device, args, size, template_key,circuit_name):
+
+    log, results_path, do_need_to_compute = setup_dictionary(args, template_key, circuit_name)
 
     print("----------------------------------------------------------------------------------------------------")
     print(f"Evaluating {circuit_name} on the IOI dataset with template {args.prompt_type} and {size} samples.")
@@ -67,14 +71,12 @@ def run_ioi_task(model, loader, criterion, device, args, size, template_key,circ
                 logits_diff = logit_difference.sum().item()
                 total_logits_diff += logits_diff
 
-                if ((batch_idx + 1) * args.batch_size) % args.test_steps == 0:
-                    print(f"{circuit_name} after {(batch_idx + 1) * args.batch_size} samples | Loss : {current_loss / inputs.size(0):.4f} | Accuracy : {correct_predictions / inputs.size(0):.2f} | Logit difference : {logits_diff / inputs.size(0):.2f}")
-
         model_avg_loss = total_loss / size
         model_avg_correct_preds = total_correct_preds / size
         model_avg_logits_diff = total_logits_diff / size
 
-        print(f"{circuit_name} final metrics after {size} samples | Loss : {model_avg_loss:.4f} | Accuracy : {model_avg_correct_preds:.2f} | Logit difference : {model_avg_logits_diff:.2f}")
+        #This will be printed when dic is reloaded
+        #print(f"{circuit_name} final metrics after {size} samples | Loss : {model_avg_loss:.4f} | Accuracy : {model_avg_correct_preds:.2f} | Logit difference : {model_avg_logits_diff:.2f}")
 
         log[args.prompt_type][template_key]["Count"] = size
         log[args.prompt_type][template_key]["Loss"] = model_avg_loss
@@ -84,8 +86,7 @@ def run_ioi_task(model, loader, criterion, device, args, size, template_key,circ
         json.dump(log, open(results_path, "w"), indent = 4)
     else:
         print("Retrieving results from previous computations.")
-        print(f'{circuit_name} metrics on {log[args.prompt_type][template_key]["Count"]} samples | Loss : {log[args.prompt_type][template_key]["Loss"]:.4f} | Accuracy : {log[args.prompt_type][template_key]["Accuracy"]:.2f}')
-
+    print(f'{circuit_name} metrics on {log[args.prompt_type][template_key]["Count"]} samples | Loss : {log[args.prompt_type][template_key]["Loss"]:.4f} | Accuracy : {log[args.prompt_type][template_key]["Accuracy"]:.2f} | Logit difference : {log[args.prompt_type][template_key]["Logit difference"]:.2f}"')
 
 def test_ioi_circuit(args):
 
