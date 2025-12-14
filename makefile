@@ -16,3 +16,7 @@ compute_average_on_abc_dataset:
 
 test_circuit:
 	python test_circuit.py
+
+
+minimality:
+	python minimality.py

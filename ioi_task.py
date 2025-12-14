@@ -79,4 +79,5 @@ def run_ioi_task(model, loader, criterion, device, args, size, template_key,circ
     else:
         print("Retrieving results from previous computations.")
     print(f'{circuit_name} metrics on {log[args.prompt_type][template_key]["Count"]} samples | Loss : {log[args.prompt_type][template_key]["Loss"]:.4f} | Accuracy : {log[args.prompt_type][template_key]["Accuracy"]:.2f} | Logit difference : {log[args.prompt_type][template_key]["Logit difference"]:.2f}"')
+    return log
 
