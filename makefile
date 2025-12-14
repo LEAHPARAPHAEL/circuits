@@ -14,5 +14,5 @@ compute_average_on_abc_dataset:
 # Run comparative inference: Model vs Abalted Model
 ########################################
 
-ablation_inference:
+test_circuit:
 	python test_circuit.py
