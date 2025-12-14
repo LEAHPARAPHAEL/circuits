@@ -18,6 +18,21 @@ import copy
 ##Our functions
 from ioi_task import run_ioi_task
 
+def config_compatibility(minimality_sets_config,circuit):
+    
+    minimality_sets = minimality_sets_config["minimality_sets"]
+    heads = [ast.literal_eval(head) for head in minimality_sets.keys()]
+    for head in heads:
+        if head[1] not in circuit[str(head[0])]:
+            return False
+
+    for layer in circuit.keys():
+        for head in circuit[layer]:
+            if (int(layer),head) not in heads:
+                return False
+
+    return True
+
 def build_minimality_ablation_configs(circuit_config,minimality_set,head_to_evaluate):
     head_to_evaluate = ast.literal_eval(head_to_evaluate)
     circuit_config_with = copy.deepcopy(circuit_config["attention_heads"])
@@ -138,6 +153,11 @@ def compute_minimality(args):
         minimality_sets_config = json.load(open(minimality_sets_config_path, "r"))
     else:
         raise(FileNotFoundError(f"The specified minimality config file does not exist {minimality_sets_config_path}."))
+
+    try:
+        assert config_compatibility(minimality_sets_config,ablation_config["attention_heads"])
+    except:
+        raise(ValueError("The minimality sets config is not compatible with the ablation config."))
 
     A = math.inf
     minimality_sets = minimality_sets_config["minimality_sets"]
