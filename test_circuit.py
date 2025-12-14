@@ -9,8 +9,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 import time
 import json
+from compute_abc_data import compute_abc_data
+from tqdm import tqdm
 
-def run_ioi_task_on_model(model, loader, criterion, device, args, size, log, results_path, template_key):
+def run_ioi_task_on_model(model, loader, criterion, device, args, size, log, results_path, template_key,circuit_name = "GPT_2"):
     total_loss = 0
     total_correct_preds = 0
     total_logits_diff = 0
@@ -43,13 +45,13 @@ def run_ioi_task_on_model(model, loader, criterion, device, args, size, log, res
             total_logits_diff += logits_diff
 
             if ((batch_idx + 1) * args.batch_size) % args.test_steps == 0:
-                print(f"GPT2 after {(batch_idx + 1) * args.batch_size} samples | Loss : {current_loss / inputs.size(0):.4f} | Accuracy : {correct_predictions / inputs.size(0):.2f} | Logit difference : {logits_diff / inputs.size(0):.2f}")
+                print(f"{circuit_name} after {(batch_idx + 1) * args.batch_size} samples | Loss : {current_loss / inputs.size(0):.4f} | Accuracy : {correct_predictions / inputs.size(0):.2f} | Logit difference : {logits_diff / inputs.size(0):.2f}")
 
     model_avg_loss = total_loss / size
     model_avg_correct_preds = total_correct_preds / size
     model_avg_logits_diff = total_logits_diff / size
 
-    print(f"GPT2 final metrics after {size} samples | Loss : {model_avg_loss:.4f} | Accuracy : {model_avg_correct_preds:.2f} | Logit difference : {model_avg_logits_diff:.2f}")
+    print(f"{circuit_name} final metrics after {size} samples | Loss : {model_avg_loss:.4f} | Accuracy : {model_avg_correct_preds:.2f} | Logit difference : {model_avg_logits_diff:.2f}")
 
     log[args.prompt_type][template_key]["Count"] = size
     log[args.prompt_type][template_key]["Loss"] = model_avg_loss
@@ -81,23 +83,24 @@ def test_ioi_circuit(args):
         print(sentence)
     print("----------------------------------------------------------------------------------------------------")
 
+
     #############################################################################################
     # Loads the sums over the ABC dataset.
     #############################################################################################
 
-    full_path = f"{args.abc_data_path}_{args.prompt_type}_"
+    abc_path = os.path.join(args.checkpoints_folder, f"abc_{args.prompt_type}_")
     template_key = f"T={args.template_index}" if args.num_templates == 1 else f"N={args.num_templates}"
+    abc_path += template_key
+
     template_O_position = ioi_samples.O_position
-    full_path += template_key
-    potential_filepaths = glob(f"{full_path}_*", root_dir = args.checkpoints_folder)
 
-    if potential_filepaths:
-        abc_data_path = os.path.join(args.checkpoints_folder, potential_filepaths[0])
-        print(f"Successfully loaded previous ABC means from {abc_data_path}")
+    if not os.path.isfile(abc_path):
+        print("----------------------------------------------------------------------------------------------------")
+        print("ABC data not found. Fall back to full computation.")
+        compute_abc_data(args)
 
-    else:
-        raise(FileNotFoundError("No ABC data file was found ! One is required to perform ablation. Please execute" \
-        "the file compute_abc_data.py first. "))
+    abc_data = torch.load(abc_path, map_location = device)
+    print(f"Successfully loaded previous ABC means from {abc_path}")
 
 
     #############################################################################################
@@ -117,6 +120,7 @@ def test_ioi_circuit(args):
     ioi_dataset = TensorDataset(ioi_inputs, ioi_labels, ioi_O_labels)
 
     loader = DataLoader(ioi_dataset, batch_size = args.batch_size, shuffle = False)
+
 
     #############################################################################################
     # Builds the model
@@ -165,22 +169,24 @@ def test_ioi_circuit(args):
         print(f'GPT2 final metrics after {log[args.prompt_type][template_key]["Count"]} samples | Loss : {log[args.prompt_type][template_key]["Loss"]:.4f} | Accuracy : {log[args.prompt_type][template_key]["Accuracy"]:.2f} | Logit difference : {log[args.prompt_type][template_key]["Logit difference"]:.2f}')
 
 
-
-
     #############################################################################################
     # Builds the circuit
     #############################################################################################
 
     ablation_config_path = os.path.join(args.configs_folder, args.config)
 
-    model.ablate(abc_data_path, ablation_config_path, device)
-    
+    if os.path.isfile(ablation_config_path):
+        ablation_config = json.load(open(ablation_config_path, "r"))
+    else:
+        raise(FileNotFoundError("The specified config file does not exist."))
+
+    model.ablate(abc_data, ablation_config)
 
     #############################################################################################
     # Gets or creates the result dict for the circuit
     #############################################################################################
 
-    results_path = os.path.join(args.results_folder, f"{model.circuit_name}.json")
+    results_path = os.path.join(args.results_folder, f'{ablation_config["name"]}.json')
 
     if os.path.isfile(results_path):
         log = json.load(open(results_path, "r"))
@@ -206,25 +212,10 @@ def test_ioi_circuit(args):
     print(f"Evaluating the IOI circuit on the IOI dataset with template {args.prompt_type} and {size} samples.")
 
     if do_need_to_compute:
-        run_ioi_task_on_model(model, loader, criterion, device, args, size, log, results_path, template_key)
-    elif False:
-        ##this is some testing code
-        with torch.no_grad():
-            for batch_idx, (batch_inputs, batch_labels, batch_O_labels) in enumerate(loader):
-                print(batch_inputs)
-                print(batch_labels)
-                print(batch_O_labels)
-                inputs = batch_inputs.to(device)
-                outputs = model(inputs)
-                breakpoint()
-                all_logits = outputs.logits
-
-
-
-                break
+        run_ioi_task_on_model(model, loader, criterion, device, args, size, log, results_path, template_key,ablation_config["name"])
     else:
         print("Retrieving results from previous computations.")
-        print(f'{model.circuit_name} final metrics after {log[args.prompt_type][template_key]["Count"]} samples | Loss : {log[args.prompt_type][template_key]["Loss"]:.4f} | Accuracy : {log[args.prompt_type][template_key]["Accuracy"]:.2f}')
+        print(f'{ablation_config["name"]} metrics on {log[args.prompt_type][template_key]["Count"]} samples | Loss : {log[args.prompt_type][template_key]["Loss"]:.4f} | Accuracy : {log[args.prompt_type][template_key]["Accuracy"]:.2f}')
 
 
 
@@ -232,14 +223,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Computes the means of the gpt2 model over the ABC dataset")
     parser.add_argument("--results_folder", type = str, default = "results", help = "Results folder")
     parser.add_argument("--checkpoints_folder", type = str, default = "checkpoints", help = "Checkpoints folder")
-    parser.add_argument("-a", "--abc_data_path", type = str, default = "abc_data", help = "Path to the saved sums over the ABC dataset")
     parser.add_argument("-s", "--size", type = int, default = 8192, help = "Size of the IOI dataset (power of 2 is simpler for alignment with batch sizes)")
     parser.add_argument("-b", "--batch_size", type = int, default = 512, help = "Size of the batch (can be as large as vram allows as this is eval mode)")
     parser.add_argument("-t", "--num_templates", type = int, default = 1, help = "Number of different templates to use.")
     parser.add_argument("-p", "--prompt_type", type = str, default = 'BABA', help = "Template to use.")
     parser.add_argument("--configs_folder", type = str, default = "configs", help = "Configurations folder")
-    parser.add_argument("-c", "--config", type = str, default = "ioi_paper_ablation.json", help = "Ablation config file")
-    parser.add_argument("--test_steps", type = int, default = 1024, help = "Number of samples between each print in the console.")
+    parser.add_argument("-c", "--config", type = str, default = "ioi.json", help = "Ablation config file")
     parser.add_argument("-i", "--template_index", type = int, default = 0, help = "Index of the template to use (if only one template is selected).")
 
 
