@@ -5,6 +5,7 @@ from ioi_dataset import IOIDataset
 import os
 from torch.utils.data import TensorDataset, DataLoader
 from glob import glob
+from tqdm import tqdm
 
 
 
@@ -52,23 +53,12 @@ def compute_abc_data(args : argparse.Namespace) -> None:
     # Finds potential checkpoints
     #############################################################################################
 
-    full_path = f"{args.abc_data_path}_{args.prompt_type}"
-    full_path += f"_T={args.template_index}" if args.num_templates == 1 else f"_N={args.num_templates}"
-    potential_filepaths = glob(f"{full_path}_*", root_dir = args.checkpoints_folder)
-
-    if potential_filepaths:
-        abc_data_path = os.path.join(args.checkpoints_folder, potential_filepaths[0])
-        abc_data = torch.load(abc_data_path, map_location = device)
-
-        print(f"Successfully loaded previous ABC data from {abc_data_path}")
-
-        last_sample_index = abc_data["last_sample_index"]
-
-    else:
-        abc_data_path = os.path.join(args.checkpoints_folder, f"{full_path}_0.pth")
-        abc_data = None
-        last_sample_index = 0
-
+    abc_path = os.path.join(args.checkpoints_folder, f"abc_{args.prompt_type}")
+    abc_path += f"_T={args.template_index}" if args.num_templates == 1 else f"_N={args.num_templates}"
+    
+    if os.path.isfile(abc_path):
+        print("Activations on this ABC template have already been computed.")
+        return
 
     #############################################################################################
     # Builds the dataset and dataloader
@@ -79,7 +69,7 @@ def compute_abc_data(args : argparse.Namespace) -> None:
     print("----------------------------------------------------------------------------------------------------")
     print("Sequence length : ", seq_len)
 
-    abc_tokens = abc_samples.toks.long()[last_sample_index:size, :seq_len - 1].to(device)
+    abc_tokens = abc_samples.toks.long()[:size, :seq_len - 1].to(device)
 
     abc_dataset = TensorDataset(abc_tokens)
 
@@ -101,32 +91,27 @@ def compute_abc_data(args : argparse.Namespace) -> None:
 
     model.accumulate()
     print("----------------------------------------------------------------------------------------------------")
-    print(f"Evaluating the model on the ABC dataset from index {last_sample_index} to {size}")
+    print(f"Evaluating the model on the ABC dataset for template {args.prompt_type} with {size} samples")
     with torch.no_grad():
 
-        current_sample_index = last_sample_index
-
-        for batch in loader:
+        for batch in tqdm(loader):
 
             inputs = batch[0].to(device)
             
             model(inputs)
 
-            current_sample_index += inputs.size(0)
+    abc_data = model.stop_accumulation()
 
-            if current_sample_index % args.checkpoint_steps == 0:
-                abc_data, abc_data_path = model.update_accumulation_data(current_sample_index, abc_data_path, abc_data)
+    abc_data["size"] = size
 
+    torch.save(abc_data, abc_path)
 
-    
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Computes the sum of outputs of the gpt2 model over the ABC dataset")
     parser.add_argument("--checkpoints_folder", type = str, default = "checkpoints", help = "Checkpoints folder")
-    parser.add_argument("-a", "--abc_data_path", type = str, default = "abc_data", help = "Path to the saved sums over the ABC dataset")
     parser.add_argument("-s", "--size", type = int, default = 8192, help = "Size of the ABC dataset (power of 2 is simpler for alignment with batch sizes)")
-    parser.add_argument("-c", "--checkpoint_steps", type = int, default = 1024, help = "Number of samples to evaluate between each checkpoint")
     parser.add_argument("-b", "--batch_size", type = int, default = 512, help = "Size of the batch (can be as large as vram allows as this is eval mode)")
     parser.add_argument("-t", "--num_templates", type = int, default = 1, help = "Number of different templates to use.")
     parser.add_argument("-i", "--template_index", type = int, default = 0, help = "Index of the template to use (if only one template is selected).")
