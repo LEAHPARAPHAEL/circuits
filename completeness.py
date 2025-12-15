@@ -59,17 +59,17 @@ def make_ablation_configs(circuit_config,set_config,set_name):
     for head in set_config:
         ablated_circuit[str(head[0])].remove(head[1])
         ablated_model[str(head[0])].remove(head[1])
-
+    name = circuit_config['name']
     ablated_circuit_config = {
         "attention_heads": ablated_circuit,
         "ablate_mlp": circuit_config["ablate_mlp"],
-        "name": f"{circuit_config['name']}_circuit_ablated_set={set_name}"
+        "name": f"{name}_circuit_ablated_set={set_name}"
     }
 
     ablated_model_config = {
         "attention_heads": ablated_model,
         "ablate_mlp": circuit_config["ablate_mlp"],
-        "name": f"{circuit_config['name']}_model_ablated_set={set_name}"
+        "name": f"{name}_model_ablated_set={set_name}"
     }
 
     return ablated_circuit_config, ablated_model_config
@@ -94,17 +94,16 @@ def generate_random_ablation_set(ablation_config, p):
     ##The random config is caracterized by it's signature
     ##0's when the head is removed, 1's when it is kept
     ## the order is the one when reading the circuit config in order
-
+    name = ablation_config["name"]
     random_config = {
         "attention_heads": random_circuit,
         "ablate_mlp": ablation_config["ablate_mlp"],
-        "name": f"{ablation_config["name"]}_circuit_ablated_{signature}"
+        "name": f"{name}_circuit_ablated_{signature}"
     }
-
     random_ablated_model_config = {
         "attention_heads": model_with_random_ablation,
         "ablate_mlp": ablation_config["ablate_mlp"],
-        "name": f"{ablation_config["name"]}_model_ablated_{signature}"
+        "name": f"{name}_model_ablated_{signature}"
     }
     return random_config, random_ablated_model_config,signature, kept_heads , ablated_heads
 
@@ -255,7 +254,7 @@ if __name__ == "__main__":
     parser.add_argument("--results_folder", type = str, default = "results/completeness", help = "Results folder")
     parser.add_argument("--checkpoints_folder", type = str, default = "checkpoints", help = "Checkpoints folder")
     parser.add_argument("-s", "--size", type = int, default = 8192, help = "Size of the IOI dataset (power of 2 is simpler for alignment with batch sizes)")
-    parser.add_argument("-n", "--num_sets", type = int, default = 2, help = "Number of sets to use")
+    parser.add_argument("-n", "--num_sets", type = int, default = 3, help = "Number of sets to use")
     parser.add_argument("-b", "--batch_size", type = int, default = 512, help = "Size of the batch (can be as large as vram allows as this is eval mode)")
     parser.add_argument("-t", "--num_templates", type = int, default = 1, help = "Number of different templates to use.")
     parser.add_argument("-p", "--prompt_type", type = str, default = 'BABA', help = "Template to use.")
@@ -265,7 +264,7 @@ if __name__ == "__main__":
     parser.add_argument("--completeness_config", type = str, default = "categories", help = "Configurations folder")
     parser.add_argument("-c", "--config", type = str, default = "ioi_paper_ablation.json", help = "Ablation config file")
     parser.add_argument("-i", "--template_index", type = int, default = 0, help = "Index of the template to use (if only one template is selected).")
-    parser.add_argument("--probability", type = float, default = 0.5, help = "Probability of keeping each head")
+    parser.add_argument("--probabilities", type = float, nargs="+",default = [0.5], help = "Probability of keeping each head")
 
 
     args = parser.parse_args()
@@ -276,6 +275,8 @@ if __name__ == "__main__":
     os.makedirs(args.configs_folder, exist_ok=True)
     os.makedirs(args.results_folder, exist_ok=True)
 
-    compute_completeness(args)
+    for p in args.probabilities:
+        args.probability = p
+        compute_completeness(args)
 
 

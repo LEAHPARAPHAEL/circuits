@@ -12,4 +12,5 @@ source env_circuit/bin/activate
 
 # Run the training script
 python minimality.py \
-    -t 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14
+    -t 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 \
+    -c configs/ioi_paper28_ablation.json 
