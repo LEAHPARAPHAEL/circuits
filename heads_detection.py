@@ -11,165 +11,16 @@ import time
 import json
 from compute_abc_data import compute_abc_data
 from tqdm import tqdm
-
+from detection_utils import get_duplicate_token_head_detection_pattern, get_induction_head_detection_pattern, get_previous_token_head_detection_pattern, compute_head_attention_similarity_score
+import matplotlib.pyplot as plt
+from transformers import AutoTokenizer
 
 def detect_heads(args):
 
-    size = args.size
     device = args.device
 
     #############################################################################################
-    # Loop over all templates found to get an average across several templates
-    #############################################################################################
-    
-    ablation_config_path = os.path.join(args.configs_folder, args.config)
-
-    if os.path.isfile(ablation_config_path):
-        ablation_config = json.load(open(ablation_config_path, "r"))
-    else:
-        raise(FileNotFoundError("The specified config file does not exist."))    
-
-
-
-
-    #############################################################################################
-    # Builds the IOI dataset
-    #############################################################################################
-
-    ioi_samples = IOIDataset(
-        prompt_type=args.prompt_type,
-        N=size,
-        nb_templates=args.num_templates,
-        seed = 0,
-        template_idx=args.template_index
-    )
-
-    print("----------------------------------------------------------------------------------------------------")
-    print("A few samples from the IOI dataset  : ")
-    for sentence in ioi_samples.sentences[:5]:
-        print(sentence)
-    print("----------------------------------------------------------------------------------------------------")
-
-
-    #############################################################################################
-    # Loads the sums over the ABC dataset.
-    #############################################################################################
-
-    abc_path = os.path.join(args.checkpoints_folder, f"abc_{args.prompt_type}_")
-    template_key = f"T={args.template_index}" if args.num_templates == 1 else f"N={args.num_templates}"
-    abc_path += template_key
-
-    if not os.path.isfile(abc_path):
-        print("----------------------------------------------------------------------------------------------------")
-        print("ABC data not found. Fall back to full computation.")
-        compute_abc_data(args)
-
-    abc_data = torch.load(abc_path, map_location = device)
-    print(f"Successfully loaded previous ABC means from {abc_path}")
-
-
-    #############################################################################################
-    # Builds the dataset and dataloader
-    #############################################################################################
-
-    seq_len = ioi_samples.toks.shape[1]
-
-    print("----------------------------------------------------------------------------------------------------")
-    print("Sequence length : ", seq_len)
-
-    ioi_inputs = ioi_samples.toks.long()[:, :seq_len - 1]
-
-    ioi_labels = ioi_samples.toks.long()[:, seq_len - 1]
-
-    ioi_dataset = TensorDataset(ioi_inputs, ioi_labels)
-
-    loader = DataLoader(ioi_dataset, batch_size = args.batch_size, shuffle = False)
-
-
-    #############################################################################################
-    # Builds the model
-    #############################################################################################^
-    start_time = time.time()
-    model = AblatableGPT2Model.from_pretrained("gpt2")
-    print(f"Loaded GPT2 model: total time {time.time() - start_time:.2f} seconds")
-    model.to(device)
-    model.eval()
-
-    criterion = nn.CrossEntropyLoss(reduction = "sum")
-
-
-    #############################################################################################
-    # Gets or creates the result dict for the model
-    #############################################################################################
-
-    results_path = os.path.join(args.results_folder, f"gpt2.json")
-
-    if os.path.isfile(results_path):
-        log = json.load(open(results_path, "r"))
-    else:
-        log = {}
-
-    if args.prompt_type not in log:
-        log[args.prompt_type] = {}
-    
-    if template_key not in log[args.prompt_type]:
-        log[args.prompt_type][template_key] = {}
-        do_need_to_compute = True
-    else:
-        do_need_to_compute = False
-
-
-    #############################################################################################
-    # First evaluation loop for the whole model
-    #############################################################################################
-
-    print("----------------------------------------------------------------------------------------------------")
-    print(f"Evaluating the entire GPT2 model on the IOI dataset with template {args.prompt_type} and {size} samples.")
-
-    if do_need_to_compute:
-        total_loss = 0
-        total_accuracy = 0
-        for (batch_inputs, batch_labels) in tqdm(loader):
-            with torch.no_grad():
-
-                inputs = batch_inputs.to(device)
-                labels = batch_labels.to(device)
-                
-                outputs = model(inputs)
-
-                all_logits = outputs.logits
-
-                next_token_logits = all_logits[:, -1, :]
-
-                loss = criterion(next_token_logits, labels)
-                current_loss = loss.item()
-                total_loss += current_loss
-
-                predictions = next_token_logits.argmax(dim=-1)
-
-                accuracy = (predictions == labels).sum().item()
-
-                total_accuracy += accuracy
-
-        model_avg_loss = total_loss / size
-        model_avg_accuracy = total_accuracy / size
-
-        print(f"GPT2 metrics on {size} samples | Loss : {model_avg_loss:.4f} | Accuracy : {model_avg_accuracy:.2f}")
-
-        log[args.prompt_type][template_key]["Count"] = size
-        log[args.prompt_type][template_key]["Loss"] = model_avg_loss
-        log[args.prompt_type][template_key]["Accuracy"] = model_avg_accuracy    
-
-        json.dump(log, open(results_path, "w"), indent = 4)
-
-    else:
-        print("Retrieving results from previous computations.")
-        print(f'GPT2 metrics on {log[args.prompt_type][template_key]["Count"]} samples | Loss : {log[args.prompt_type][template_key]["Loss"]:.4f} | Accuracy : {log[args.prompt_type][template_key]["Accuracy"]:.2f}')
-
-
-
-    #############################################################################################
-    # Builds the circuit
+    # Circuit config
     #############################################################################################
 
     ablation_config_path = os.path.join(args.configs_folder, args.config)
@@ -179,88 +30,197 @@ def detect_heads(args):
     else:
         raise(FileNotFoundError("The specified config file does not exist."))
 
-    model.ablate(abc_data, ablation_config)
+
+    #############################################################################################
+    # Builds the model
+    #############################################################################################
+
+    start_time = time.time()
+    model = AblatableGPT2Model.from_pretrained("gpt2", attn_implementation = "eager")
+    print(f"Loaded GPT2 model: total time {time.time() - start_time:.2f} seconds")
+    model.to(device)
+    model.eval()
+
 
     #############################################################################################
     # Gets or creates the result dict for the circuit
     #############################################################################################
 
-    results_path = os.path.join(args.results_folder, f'{ablation_config["name"]}.json')
+    detection_path = os.path.join(args.detection_folder, f'{ablation_config["name"]}.pth')
 
-    if os.path.isfile(results_path):
-        log = json.load(open(results_path, "r"))
+    if os.path.isfile(detection_path):
+        log = torch.load(detection_path, map_location = device)
     else:
         log = {}
 
-    if args.prompt_type not in log:
-        log[args.prompt_type] = {}
-    
-    if template_key not in log[args.prompt_type]:
-        log[args.prompt_type][template_key] = {}
-        do_need_to_compute = True
-
-    else:
-        do_need_to_compute = False
-
-
     #############################################################################################
-    # Second evaluation loop for the circuit
+    # Finds all precomputed templates and evaluates them all.
     #############################################################################################
 
-    print("----------------------------------------------------------------------------------------------------")
-    print(f"Evaluating the IOI circuit on the IOI dataset with template {args.prompt_type} and {size} samples.")
+    precomputed_templates = os.listdir(args.checkpoints_folder) 
 
-    if do_need_to_compute:
-        total_loss = 0
-        total_accuracy = 0
-        for (batch_inputs, batch_labels) in tqdm(loader):
-            with torch.no_grad():
+    tokenizer = AutoTokenizer.from_pretrained("gpt2")
 
-                inputs = batch_inputs.to(device)
-                labels = batch_labels.to(device)
+    for template_path in tqdm(precomputed_templates, desc = "Templates"):
+        template_key = template_path.split("_")[1]
+        template_index = int(template_path.split("_")[-1].split("=")[-1])
+
+        print("----------------------------------------------------------------------------------------------------")
+        print(f"Template {template_key} | Template index : {template_index}")
+
+
+        if template_key not in log :
+            log[template_key] = {}
+        
+        if str(template_index) not in log[template_key]:
+
+            log[template_key][str(template_index)] = {}
+
+            abc_data = torch.load(os.path.join(args.checkpoints_folder, template_path), map_location = device)
+
+            model.ablate(abc_data, ablation_config)
+
+
+            ioi_samples = IOIDataset(
+                prompt_type=template_key,
+                N=1,
+                nb_templates=1,
+                seed = 0,
+                template_idx=template_index
+            )
+
+
+
+            sentence = ioi_samples.sentences[0]
+
+            #############################################################################################
+            # Builds the dataset and dataloader
+            #############################################################################################
+
+            seq_len = ioi_samples.toks.shape[1]
+
+            print("----------------------------------------------------------------------------------------------------")
+            print("Sequence length : ", seq_len)
+
+            ioi_inputs = ioi_samples.toks.long()[:, :seq_len - 1]
+
+            #############################################################################################
+            # Computes the attention weights
+            #############################################################################################
+
+            model.start_detection()
+
+            model(ioi_inputs.to(device), output_attentions = True)
+
+            attention_weights = model.stop_detection()
+            
+            log[template_key][str(template_index)]["sentence"] = sentence
+            log[template_key][str(template_index)]["tokens"] = ioi_inputs
+            log[template_key][str(template_index)]["attention_weights"] = attention_weights
+
+
+            #############################################################################################
+            # Computes the detection patterns
+            #############################################################################################
+            
+            previous_token_pattern = get_previous_token_head_detection_pattern(ioi_inputs).to(device)
+            duplicate_token_pattern = get_duplicate_token_head_detection_pattern(ioi_inputs).to(device)
+            induction_head_pattern = get_induction_head_detection_pattern(ioi_inputs).to(device)
+
+            log[template_key][str(template_index)]["previous_token_pattern"] = previous_token_pattern
+            log[template_key][str(template_index)]["duplicate_token_pattern"] = duplicate_token_pattern
+            log[template_key][str(template_index)]["induction_head_pattern"] = induction_head_pattern
+
+
+
+
+        else:
+            previous_token_pattern = log[template_key][str(template_index)]["previous_token_pattern"].to(device) 
+            duplicate_token_pattern = log[template_key][str(template_index)]["duplicate_token_pattern"].to(device) 
+            induction_head_pattern = log[template_key][str(template_index)]["induction_head_pattern"].to(device) 
+
+            sentence = log[template_key][str(template_index)]["sentence"] 
+            ioi_inputs = log[template_key][str(template_index)]["tokens"].to(device) 
+            attention_weights = log[template_key][str(template_index)]["attention_weights"] 
+
+            seq_len = ioi_inputs.shape[1] + 1
+
+        #############################################################################################
+        # Computes the metrics for each head
+        #############################################################################################
+
+        heads_ablation_config = ablation_config["attention_heads"]
+
+        patterns = [previous_token_pattern, duplicate_token_pattern, induction_head_pattern]
+        
+        pattern_names = ["previous_token_head", "duplicate_token_head", "induction_head"]
+
+        tokens = tokenizer.convert_ids_to_tokens(ioi_inputs.squeeze(0))
+        tokens = [token.replace("Ġ", "") for token in tokens]
+
+        for layer_idx, heads_indices in heads_ablation_config.items():
+
+            layer_weights = attention_weights[str(layer_idx)].to(device)
+
+            for head_idx in heads_indices:
+
+                head_weights = layer_weights[:, head_idx, :seq_len-1, :seq_len-1]
+
+                head_key = f"{layer_idx}-{head_idx}"
+
+                for pattern, pattern_name in zip(patterns, pattern_names):
+
+                    #mul = compute_head_attention_similarity_score(head_weights, pattern, error_measure = "mul")
+                    abs = compute_head_attention_similarity_score(head_weights, pattern, error_measure = "abs", exclude_bos=False, exclude_current_token=False)
+
+                    if abs >= args.threshold:
+                        print(f"Head ({head_key}) | {pattern_name} : {abs}")
+                        plot_pattern(args, tokenizer, ablation_config["name"], head_key, head_weights, 
+                                     pattern, pattern_name, tokens)
+
                 
-                outputs = model(inputs)
+    torch.save(log, detection_path)
 
-                all_logits = outputs.logits
 
-                next_token_logits = all_logits[:, -1, :]
+def plot_pattern(args, tokenizer, circuit_name, head_key, head_weights, pattern, pattern_name, tokens):
 
-                loss = criterion(next_token_logits, labels)
-                current_loss = loss.item()
-                total_loss += current_loss
+    fig, axes = plt.subplots(nrows = 1, ncols = 2, figsize = (14, 7))
 
-                predictions = next_token_logits.argmax(dim=-1)
+    axes[0].imshow(head_weights.squeeze(0).cpu(), cmap="coolwarm", aspect="auto")
+    axes[0].set_yticks(
+        range(len(tokens)), tokens
+    )
+    axes[0].set_xticks(
+        range(len(tokens)), tokens, rotation=90
+    )
+    axes[0].set_title("Attention weights")
 
-                accuracy = (predictions == labels).sum().item()
+    im = axes[1].imshow(pattern.cpu(), cmap="coolwarm", aspect="auto")
+    axes[1].set_yticks(
+        range(len(tokens)), tokens
+    )
+    axes[1].set_xticks(
+        range(len(tokens)), tokens, rotation=90
+    )
+    axes[1].set_title(f"Pattern : {pattern_name}")  
 
-                total_accuracy += accuracy
+    fig.colorbar(im, fraction=0.046, pad=0.04)
+    #fig.colorbar()
+    plt.tight_layout()
 
-        circuit_avg_loss = total_loss / size
-        circuit_avg_accuracy = total_accuracy / size
+    plt.savefig(os.path.join(args.plots_folder, f"{circuit_name}_{pattern_name}_({head_key})"))
 
-        print(f'Circuit {ablation_config["name"]} metrics on {size} samples | Loss : {circuit_avg_loss:.4f} | Accuracy : {circuit_avg_accuracy:.2f}')
-
-        log[args.prompt_type][template_key]["Count"] = size
-        log[args.prompt_type][template_key]["Loss"] = circuit_avg_loss
-        log[args.prompt_type][template_key]["Accuracy"] = circuit_avg_accuracy    
-
-        json.dump(log, open(results_path, "w"), indent = 4)
-
-    else:
-        print("Retrieving results from previous computations.")
-        print(f'{ablation_config["name"]} metrics on {log[args.prompt_type][template_key]["Count"]} samples | Loss : {log[args.prompt_type][template_key]["Loss"]:.4f} | Accuracy : {log[args.prompt_type][template_key]["Accuracy"]:.2f}')
-
+    plt.close()
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Computes the means of the gpt2 model over the ABC dataset")
-    parser.add_argument("--results_folder", type = str, default = "results", help = "Results folder")
+    parser.add_argument("--detection_folder", type = str, default = "detection", help = "Detection folder")
+    parser.add_argument("--plots_folder", type = str, default = "plots", help = "Plots folder")
     parser.add_argument("--checkpoints_folder", type = str, default = "checkpoints", help = "Checkpoints folder")
-    parser.add_argument("-s", "--size", type = int, default = 1, help = "Size of the IOI dataset (power of 2 is simpler for alignment with batch sizes)")
     parser.add_argument("--configs_folder", type = str, default = "configs", help = "Configurations folder")
     parser.add_argument("-c", "--config", type = str, default = "ioi.json", help = "Ablation config file")
-    parser.add_argument("-i", "--template_index", type = int, default = 0, help = "Index of the template to use (if only one template is selected).")
-
+    parser.add_argument("-t", "--threshold", type = float, default = 0.93, help = "Threshold")
 
     args = parser.parse_args()
 
@@ -268,7 +228,8 @@ if __name__ == "__main__":
 
     os.makedirs(args.checkpoints_folder, exist_ok=True)
     os.makedirs(args.configs_folder, exist_ok=True)
-    os.makedirs(args.results_folder, exist_ok=True)
+    os.makedirs(args.detection_folder, exist_ok=True)
+    os.makedirs(args.plots_folder, exist_ok=True)
 
     detect_heads(args)
 

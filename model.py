@@ -78,13 +78,9 @@ class AblatableGPT2Model(GPT2LMHeadModel):
         '''
         data = {}
         for i, block in enumerate(self.transformer.h):
+            data[str(i)] = block.attn.stop_detection().clone().detach()
             
-            block.attn.set_forward_mode("standard")
-
-
-
-
-
+        return data
 
     def start_accumulation(self) -> None:
 
@@ -114,12 +110,10 @@ class AblatableGPT2Model(GPT2LMHeadModel):
         for i, block in enumerate(self.transformer.h):
                 
             data[str(i)] = {
-                "attention" : block.attn.accumulation_outputs,
-                "mlp" : block.mlp.accumulation_outputs
+                "attention" : block.attn.stop_accumulation(),
+                "mlp" : block.mlp.stop_accumulation()
             }
 
-            block.attn.set_forward_mode("standard")
-            block.mlp.set_forward_mode("standard")
 
         return data
 
@@ -216,6 +210,18 @@ class AblatableGPT2MLP(GPT2MLP):
 
         self.forward_mode = "accumulation"
 
+    def stop_accumulation(self) -> torch.FloatTensor:
+        '''
+        Returns the accumulated ABC outputs and switches back to standard mode.
+        
+        :return: Accumulated ABC outputs.
+        :rtype: Any
+        '''
+
+        self.forward_mode = "standard"
+
+        return self.accumulation_outputs
+
 
 
     def forward(self, hidden_states: Optional[tuple[torch.FloatTensor]]) -> torch.FloatTensor:
@@ -249,6 +255,7 @@ class AblatableGPT2Attention(GPT2Attention):
     def __init__(self, config, is_cross_attention=False, layer_idx=None):
         super().__init__(config, is_cross_attention, layer_idx)
         self.forward_mode = "standard"
+        self.store_attention_weights = False
 
 
     def set_forward_mode(self, forward_mode : str) -> None:
@@ -294,13 +301,39 @@ class AblatableGPT2Attention(GPT2Attention):
         self.forward_mode = "accumulation"   
 
 
-    def stop_accumulation(self) -> None:
+    def stop_accumulation(self) -> dict:
         '''
-        Stops accumulation mode.
+        Returns the accumulated ABC outputs and switches back to standard mode.
+        
+        :return: Accumulated ABC outputs.
+        :rtype: Any
         '''
-        self.accumulation_outputs = None
 
-        self.forward_mode = "standard"    
+        self.forward_mode = "standard"
+
+        return self.accumulation_outputs
+
+
+    def start_detection(self) -> None:
+        '''
+        Switches to accumulation mode and reset the accumulation outputs buffer. 
+        '''
+        self.attention_weights = None
+
+        self.store_attention_weights = True    
+
+
+    def stop_detection(self) -> dict:
+        '''
+        Returns the accumulated attention_weights (per head).
+        
+        :return: Attention weights.
+        :rtype: dict
+        '''
+
+        self.store_attention_weights = False    
+
+        return self.attention_weights  
 
 
     def forward(
@@ -401,6 +434,9 @@ class AblatableGPT2Attention(GPT2Attention):
                 self.accumulation_outputs = attn_output.detach().sum(dim=0)
             else:
                 self.accumulation_outputs += attn_output.detach().sum(dim=0)
+
+        if self.store_attention_weights:
+            self.attention_weights = attn_weights
 
         #####################################################################
 
