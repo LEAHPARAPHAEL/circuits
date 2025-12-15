@@ -260,7 +260,7 @@ ANIMALS = [
 
 
 O_position_table ={
-    "BABA": [2]
+    "BABA": [2,2,2,2,2,2,2,2,2,2]
 }
 
 
@@ -727,7 +727,7 @@ class IOIDataset:
         ), f"{symmetric} {N}"
         assert nb_templates is None or (nb_templates % 2 == 0 or prompt_type != "mixed")
         self.prompt_type = prompt_type
-
+        self.template_idx = template_idx
         if nb_templates is None:
             nb_templates = len(BABA_TEMPLATES)
 
@@ -780,6 +780,7 @@ class IOIDataset:
 
         self.prefixes = prefixes
         self.prompt_type = prompt_type
+
         try: 
             self.O_position = O_position_table[prompt_type][template_idx]
         except:
@@ -951,6 +952,7 @@ class IOIDataset:
             prepend_bos=self.prepend_bos,
             manual_word_idx=self.word_idx,
             seed=(seed+23456)%963,
+            template_idx=self.template_idx
         )
         return flipped_ioi_dataset
 
@@ -964,6 +966,7 @@ class IOIDataset:
             if self.prefixes is not None
             else self.prefixes,
             ioi_prompts_for_word_idxs=self.ioi_prompts.copy(),
+            template_idx=self.template_idx
         )
         return copy_ioi_dataset
 
@@ -976,6 +979,7 @@ class IOIDataset:
             prompts=sliced_prompts,
             prefixes=self.prefixes,
             prepend_bos=self.prepend_bos,
+            template_idx=self.template_idx
         )
         return sliced_dataset
 
