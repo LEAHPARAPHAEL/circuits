@@ -32,8 +32,16 @@ completeness:
 # SCRIPTS
 ########################################
 job_name = paper_circuit_minimality_all
+
 minimality_all:
 	sbatch --job-name=$(job_name) \
 		--output=logs/$(job_name).out \
 		--error=logs/$(job_name).err \
 		scripts/minimality_all.sh
+
+c_job_name = paper_circuit_completeness_10_probes
+completeness_multiple_probablities:
+	sbatch --job-name=$(c_job_name) \
+		--output=logs/$(c_job_name).out \
+		--error=logs/$(c_job_name).err \
+		scripts/completeness_10_probes.sh
