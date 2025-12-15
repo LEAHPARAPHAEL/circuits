@@ -15,6 +15,8 @@ from tqdm import tqdm
 ##Our functions
 from ioi_task import run_ioi_task
 
+from heads_detection import detect_heads
+
 
 def test_ioi_circuit(args):
 
@@ -119,9 +121,13 @@ def test_ioi_circuit(args):
 
     log = run_ioi_task(model, loader, criterion, device, args, size, template_key,ablation_config["name"])
 
+    detect_heads(args, abc_data = abc_data)
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Computes the means of the gpt2 model over the ABC dataset")
     parser.add_argument("--results_folder", type = str, default = "results", help = "Results folder")
+    parser.add_argument("--detection_folder", type = str, default = "detection", help = "Detection folder")
+    parser.add_argument("--plots_folder", type = str, default = "plots", help = "Plots folder")
     parser.add_argument("--checkpoints_folder", type = str, default = "checkpoints", help = "Checkpoints folder")
     parser.add_argument("-s", "--size", type = int, default = 8192, help = "Size of the IOI dataset (power of 2 is simpler for alignment with batch sizes)")
     parser.add_argument("-b", "--batch_size", type = int, default = 512, help = "Size of the batch (can be as large as vram allows as this is eval mode)")
@@ -138,7 +144,10 @@ if __name__ == "__main__":
 
     os.makedirs(args.checkpoints_folder, exist_ok=True)
     os.makedirs(args.configs_folder, exist_ok=True)
+    os.makedirs(args.detection_folder, exist_ok=True)
+    os.makedirs(args.plots_folder, exist_ok=True)
     os.makedirs(args.results_folder, exist_ok=True)
+    os.makedirs(os.path.join(args.results_folder, "heads"), exist_ok=True)
 
     test_ioi_circuit(args)
 
