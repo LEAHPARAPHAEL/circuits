@@ -8,7 +8,9 @@ def plot_minimality_results(
     categories: Optional[Dict[str, List[Tuple[int, int]]]] = None,
     no_abs_value: bool = False,
     figsize: Tuple[int, int] = (15, 6),
-    order: Optional[List[Tuple[int, int]]] = None
+    order: Optional[List[Tuple[int, int]]] = None,
+    template_key_list = [0],
+    save_path: Optional[str] = None
 ):
     """
     Plot minimality results from a JSON file.
@@ -31,37 +33,36 @@ def plot_minimality_results(
         If provided, only heads in this list will be plotted in the specified order
     """
     
-    # Load the results
-    with open(results_file, 'r') as f:
-        results = json.load(f)
-    
-    # Parse heads and compute values
-    heads = []
-    values = []
-    
-    # If order is specified, use it; otherwise use the order from the file
-    if order:
-        head_strs = [str(head) for head in order]
-    else:
-        head_strs = list(results.keys())
-    
-    for head_str in head_strs:
-        if head_str not in results:
-            print(f"Warning: Head {head_str} not found in results file, skipping.")
-            continue
+    # Load the results for every template key
+
+    # You need to specify an order
+    head_strs = [str(head) for head in order]
+    heads = head_strs
+    sums = [0]*len(head_strs)
+
+    for template_key in template_key_list:
+
+        results_file_template = results_file.replace("T=0",f"T={template_key}")
+        print(f"Trying to load results from: {results_file_template}")
+        with open(results_file, 'r') as f:
+            results = json.load(f)
+        
+        for i,head_str in enumerate(head_strs):
+            if head_str not in results:
+                print(f"Warning: Head {head_str} not found in results file, skipping. THIS WILL GIVE FALSE RESULTS")
+                continue
+                
+            metrics = results[head_str]
             
-        metrics = results[head_str]
-        heads.append(head_str)
-        
-        if no_abs_value:
-            # Compute: Logit difference without head - Logit difference with head
-            value = metrics["Logit difference with head"] - metrics["Logit difference without head"]
-        else:
-            # Use the absolute difference from the file
-            value = metrics["Difference in logit difference"]
-        
-        values.append(value)
-    
+            if no_abs_value:
+                # Compute: Logit difference without head - Logit difference with head
+                sums[i] += metrics["Logit difference with head"] - metrics["Logit difference without head"]
+            else:
+                # Use the absolute difference from the file
+                sums[i] += metrics["Difference in logit difference"]
+
+    values = [s / len(template_key_list) for s in sums]
+
     # Assign colors based on categories
     colors = []
     category_colors = {}
@@ -104,7 +105,7 @@ def plot_minimality_results(
     ax.set_xlabel('Attention Head (Layer, Head)', fontsize=12, fontweight='bold')
     
     if no_abs_value:
-        ax.set_ylabel('Logit Diff Without - Logit Diff With', fontsize=12, fontweight='bold')
+        ax.set_ylabel('Logit Diff With - Logit Diff Without', fontsize=12, fontweight='bold')
         ax.set_title('Impact of Removing Individual Heads (Signed Difference)', fontsize=14, fontweight='bold')
     else:
         ax.set_ylabel('Difference in Logit Difference', fontsize=12, fontweight='bold')
@@ -131,6 +132,8 @@ def plot_minimality_results(
         ax.legend(handles=legend_elements, loc='best', framealpha=0.9)
     
     plt.tight_layout()
+    if save_path:
+        plt.savefig(save_path)
     plt.show()
     
     return fig, ax
