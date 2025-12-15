@@ -151,6 +151,25 @@ BABA_TEMPLATES = [
     "Friends [B] and [A] found a [OBJECT] at the [PLACE]. [B] gave it to [A]",
 ]
 
+O_position_table ={
+    "BABA": [2,
+             2,
+             2,
+             2,
+             2,
+             1,
+             1,
+             1,
+             1,
+             1,
+             4,
+             3,
+             2,
+             2,
+             1]
+}
+
+
 BABA_LONG_TEMPLATES = [
     "Then in the morning, [B] and [A] went to the [PLACE]. [B] gave a [OBJECT] to [A]",
     "Then in the morning, [B] and [A] had a lot of fun at the [PLACE]. [B] gave a [OBJECT] to [A]",
@@ -258,24 +277,6 @@ ANIMALS = [
     "ferret",
 ]
 
-
-O_position_table ={
-    "BABA": [2,
-             2,
-             2,
-             2,
-             2,
-             1,
-             1,
-             1,
-             1,
-             1,
-             4,
-             3,
-             2,
-             2,
-             1]
-}
 
 
 def multiple_replace(dict, text):
