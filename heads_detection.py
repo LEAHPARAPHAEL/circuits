@@ -20,7 +20,7 @@ from transformers import AutoTokenizer
 
 
 
-def detect_heads(args):
+def detect_heads(args, abc_data = None):
 
     device = args.device
 
@@ -76,17 +76,17 @@ def detect_heads(args):
         #############################################################################################
         # Loads or computes the ABC means
         #############################################################################################
+        if abc_data is None:
+            abc_path = os.path.join(args.checkpoints_folder, f"abc_{args.prompt_type}_T={args.template_index}")
 
-        abc_path = os.path.join(args.checkpoints_folder, f"abc_{args.prompt_type}_T={args.template_index}")
+            if not os.path.isfile(abc_path):
+                print("----------------------------------------------------------------------------------------------------")
+                print("ABC data not found. Fall back to full computation.")
+                compute_abc_data(args)
 
-        if not os.path.isfile(abc_path):
-            print("----------------------------------------------------------------------------------------------------")
-            print("ABC data not found. Fall back to full computation.")
-            compute_abc_data(args)
-
-        abc_data = torch.load(abc_path, map_location = device)
-        print(f"Successfully loaded previous ABC means from {abc_path}")
-
+            abc_data = torch.load(abc_path, map_location = device)
+            print(f"Successfully loaded previous ABC means from {abc_path}")
+        
 
         model.ablate(abc_data, ablation_config)
 
