@@ -20,6 +20,60 @@ import numpy as np
 from ioi_task import run_ioi_task
 
 
+def run_comparison_task(ablated_model_config, ablated_circuit_config, model, abc_data, loader, criterion, device, args, size, template_key,circuit_name):
+
+    #############################################################################################
+    # Run the IOI task on the ablated model 
+    #############################################################################################^A
+
+    model.ablate(abc_data, ablated_model_config)
+    ablated_model_log = run_ioi_task(model, loader, criterion, device, args, size, template_key, circuit_name=ablated_model_config["name"])
+
+    #############################################################################################
+    # Run the IOI task on the ablated circuit 
+    #############################################################################################^A
+
+    model.ablate(abc_data, ablated_circuit_config)
+    ablated_circuit_log = run_ioi_task(model, loader, criterion, device, args, size, template_key, circuit_name=ablated_circuit_config["name"])
+
+    #############################################################################################
+    # Store the results of this random ablation
+    #############################################################################################^A
+
+    completeness_score = ablated_model_log[args.prompt_type][template_key]["Logit difference"] - ablated_circuit_log[args.prompt_type][template_key]["Logit difference"]
+    exp_results = {
+        "ablated_model_difference": ablated_model_log[args.prompt_type][template_key]["Logit difference"],
+        "ablated_circuit_difference": ablated_circuit_log[args.prompt_type][template_key]["Logit difference"],
+        "completeness_score": completeness_score
+    }
+
+    return exp_results
+
+
+
+def make_ablation_configs(circuit_config,set_config,set_name):
+    ablated_circuit = copy.deepcopy(circuit_config["attention_heads"])
+    ablated_model = {str(i): list(range(12)) for i in range(12)}
+
+    ##set config is a list of lists of 2 elements
+    for head in set_config:
+        ablated_circuit[str(head[0])].remove(head[1])
+        ablated_model[str(head[0])].remove(head[1])
+
+    ablated_circuit_config = {
+        "attention_heads": ablated_circuit,
+        "ablate_mlp": circuit_config["ablate_mlp"],
+        "name": f"{circuit_config['name']}_circuit_ablated_set={set_name}"
+    }
+
+    ablated_model_config = {
+        "attention_heads": ablated_model,
+        "ablate_mlp": circuit_config["ablate_mlp"],
+        "name": f"{circuit_config['name']}_model_ablated_set={set_name}"
+    }
+
+    return ablated_circuit_config, ablated_model_config
+
 def generate_random_ablation_set(ablation_config, p):
     random_circuit = copy.deepcopy(ablation_config["attention_heads"])
     model_with_random_ablation = {str(i): list(range(12)) for i in range(12)}
@@ -143,7 +197,7 @@ def compute_completeness(args):
 
     if args.ablation_set_type == "random":
 
-
+        set_key = f"num_runs={args.num_sets}_prob={args.probability}"
         current_biggest_difference = -math.inf
 
         for n in range(args.num_sets):
@@ -152,67 +206,49 @@ def compute_completeness(args):
             # Generate random abltation set and the corresponding model/circuit
             #############################################################################################^
 
-
-            random_config, random_ablated_model_config,signature, kept_heads, ablated_heads = generate_random_ablation_set(ablation_config,p = 0.5)
+            random_circuit_config, random_ablated_model_config,signature, kept_heads, ablated_heads = generate_random_ablation_set(ablation_config,p = args.probability)
             print(f'Generating random ablation set {n+1} / {args.num_sets}')
             print(f"We abalted the following head {ablated_heads}")
 
             #############################################################################################
-            # Run the IOI task on the ablated model 
-            #############################################################################################^A
+            # Run comparative exps
+            #############################################################################################^
 
-            model.ablate(abc_data, random_ablated_model_config)
-            ablated_model_log = run_ioi_task(model, loader, criterion, device, args, size, template_key, circuit_name=random_ablated_model_config["name"])
-
-            #############################################################################################
-            # Run the IOI task on the ablated circuit 
-            #############################################################################################^A
-
-            model.ablate(abc_data, random_config)
-            ablated_circuit_log = run_ioi_task(model, loader, criterion, device, args, size, template_key, circuit_name=random_config["name"])
-
-            #############################################################################################
-            # Store the results of this random ablation
-            #############################################################################################^A
-
-
-            completeness_score = ablated_model_log[args.prompt_type][template_key]["Logit difference"] - ablated_circuit_log[args.prompt_type][template_key]["Logit difference"]
-            exp_results = {
-                "ablated_model_difference": ablated_model_log[args.prompt_type][template_key]["Logit difference"],
-                "ablated_circuit_difference": ablated_circuit_log[args.prompt_type][template_key]["Logit difference"],
-                "completeness_score": completeness_score
-            }
+            exp_results = run_comparison_task(random_ablated_model_config, random_circuit_config, model, abc_data, loader, criterion, device, args, size, template_key,circuit_name=ablation_config["name"])
+            completeness_score = exp_results["completeness_score"]
 
             completeness_log[signature] = exp_results
             current_biggest_difference = max(current_biggest_difference ,completeness_score)
             print(f"Completeness score for random set {n+1} / {args.num_sets} : {completeness_score:.4f} minimal score : {current_biggest_difference}")
-    else:
-        print(f'not implemented yet')
-        #TODO
-        #############################################################################################
-        # Loads the completeness config if relevant
-        #############################################################################################
 
-        if args.ablation_set_type == "set":
-            if os.path.isfile(completeness_config_path):
-                completeness_config = json.load(open(completeness_config_path, "r"))
-            else:
-                raise(FileNotFoundError("The specified config file does not exist."))
+            completeness_log["largest difference found"] =  current_biggest_difference
+
+    elif args.ablation_set_type == "set":
+        set_key = args.completeness_config
+        #############################################################################################
+        # Loads the completeness config
+        #############################################################################################
+        completeness_config_path = os.path.join(args.completeness_configs_folder, f'{args.completeness_config}.json')
+        completeness_config = json.load(open(completeness_config_path, "r"))
+
+        for set_name in completeness_config.keys():
+            set_config = completeness_config[set_name]
+
+            ablated_circuit_config, ablated_model_config = make_ablation_configs(ablation_config,set_config,set_name)
+            exp_results = run_comparison_task(ablated_model_config, ablated_circuit_config, model, abc_data, loader, criterion, device, args, size, template_key,circuit_name=ablation_config["name"])
+            completeness_log[set_name] = exp_results
 
     #############################################################################################
     # Store the results
     #############################################################################################^A
 
     completeness_log["name"] = ablation_config["name"]
-    completeness_log["largest difference found"] =  current_biggest_difference
+    completeness_log["ablation_set_type"] = args.ablation_set_type
 
-    completeness_results_path = os.path.join(args.results_folder, f'completeness_{args.prompt_type}_{template_key}_num_runs={args.num_sets}.json')
+    completeness_results_path = os.path.join(args.results_folder, f'completeness_{args.prompt_type}_{template_key}_type={args.ablation_set_type}_{set_key}.json')
     with open(completeness_results_path, "w") as f:
         json.dump(completeness_log, f, indent=4)
     print(f"Saved completeness results to {completeness_results_path}")
-
-
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Computes the means of the gpt2 model over the ABC dataset")
@@ -225,9 +261,11 @@ if __name__ == "__main__":
     parser.add_argument("-p", "--prompt_type", type = str, default = 'BABA', help = "Template to use.")
     parser.add_argument("--configs_folder", type = str, default = "configs", help = "Configurations folder")
     parser.add_argument("--ablation_set_type", type = str, choices = ["random","set","adversarial"],default = "random", help = "THe way the sets are selected")
-    parser.add_argument("--completeness_configs_folder", type = str, default = "configs/completeness", help = "Configurations folder")
+    parser.add_argument("--completeness_configs_folder", type = str, default = "configs/completeness_sets", help = "Configurations folder")
+    parser.add_argument("--completeness_config", type = str, default = "categories", help = "Configurations folder")
     parser.add_argument("-c", "--config", type = str, default = "ioi_paper_ablation.json", help = "Ablation config file")
     parser.add_argument("-i", "--template_index", type = int, default = 0, help = "Index of the template to use (if only one template is selected).")
+    parser.add_argument("--probability", type = float, default = 0.5, help = "Probability of keeping each head")
 
 
     args = parser.parse_args()

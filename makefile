@@ -20,3 +20,7 @@ test_circuit:
 
 minimality:
 	python minimality.py
+
+completeness:
+	python completeness.py \
+		--ablation_set_type "random" \
