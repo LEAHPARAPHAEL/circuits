@@ -35,4 +35,4 @@ minimality_all:
 	sbatch --job-name=$(job_name) \
 		--output=logs/$(job_name).out \
 		--error=logs/$(job_name).err \
-		minimality_all.sh
+		scripts/minimality_all.sh
