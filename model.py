@@ -231,7 +231,7 @@ class AblatableGPT2MLP(GPT2MLP):
         ##########################################################################
 
         if self.forward_mode == "ablation":
-            hidden_states = self.ablated_mean.to(hidden_states.dtype).expand_as(hidden_states)
+            hidden_states = self.abc_means.to(hidden_states.dtype).expand_as(hidden_states)
             return hidden_states
         
         hidden_states = super().forward(hidden_states)
