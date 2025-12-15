@@ -208,12 +208,11 @@ if __name__ == "__main__":
     parser.add_argument("--checkpoints_folder", type = str, default = "checkpoints", help = "Checkpoints folder")
     parser.add_argument("-s", "--size", type = int, default = 8192, help = "Size of the IOI dataset (power of 2 is simpler for alignment with batch sizes)")
     parser.add_argument("-b", "--batch_size", type = int, default = 512, help = "Size of the batch (can be as large as vram allows as this is eval mode)")
-    parser.add_argument("-t", "--num_templates", type = int, default = 1, help = "Number of different templates to use.")
+    parser.add_argument("-t", "--template_keys", type = int, nargs="+", default = [0], help = "Number of different templates to use.")
     parser.add_argument("-p", "--prompt_type", type = str, default = 'BABA', help = "Template to use.")
     parser.add_argument("--configs_folder", type = str, default = "configs", help = "Configurations folder")
     parser.add_argument("--minimality_sets_configs_folder", type = str, default = "configs/minimality_sets", help = "Configurations folder")
     parser.add_argument("-c", "--config", type = str, default = "ioi_paper_ablation.json", help = "Ablation config file")
-    parser.add_argument("-i", "--template_index", type = int, default = 0, help = "Index of the template to use (if only one template is selected).")
 
 
     args = parser.parse_args()
@@ -224,6 +223,8 @@ if __name__ == "__main__":
     os.makedirs(args.configs_folder, exist_ok=True)
     os.makedirs(args.results_folder, exist_ok=True)
 
-    compute_minimality(args)
-
-
+    args.num_templates = len(args.template_keys)
+    for template_key in args.template_keys:
+        args.template_index = template_key
+        print(f"Computing minimality for template key {template_key}")
+        compute_minimality(args)

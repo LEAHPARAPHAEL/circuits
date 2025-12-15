@@ -1,9 +1,6 @@
 #!/bin/bash
 #SBATCH -p mesonet 
 #SBATCH --account=m25146
-#SBATCH --job-name=minimality_paper_circuit
-#SBATCH --output=logs/minimality.out
-#SBATCH --error=logs/minimality.err
 #SBATCH --time=02:00:00
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
@@ -14,4 +11,5 @@
 source env_circuit/bin/activate
 
 # Run the training script
-python minimality.py -i 1
+python minimality.py \
+    -t 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14

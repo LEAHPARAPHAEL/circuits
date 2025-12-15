@@ -19,8 +19,20 @@ test_circuit:
 
 
 minimality:
-	python minimality.py
+	python minimality.py \
+		-t 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14
 
 completeness:
 	python completeness.py \
 		--ablation_set_type "random" \
+
+
+########################################
+# SCRIPTS
+########################################
+job_name = paper_circuit_minimality_all
+minimality_all:
+	sbatch --job-name=$(job_name) \
+		--output=logs/$(job_name).out \
+		--error=logs/$(job_name).err \
+		minimality_all.sh
