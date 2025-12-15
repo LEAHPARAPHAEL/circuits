@@ -64,6 +64,40 @@ def get_induction_head_detection_pattern(tokens: torch.Tensor) -> torch.Tensor:
     result_tensor = torch.cat((zeros_column, shifted_tensor[:, 1:]), dim=1)
     return torch.tril(result_tensor)
 
+def get_s_inhibition_head_detection_pattern(tokens: torch.Tensor, template_O_position : int) -> torch.Tensor:
+
+    O = tokens[:,template_O_position]
+
+    matches = (tokens[0] == O).nonzero(as_tuple=True)[0]
+
+    if len(matches) > 0:
+        last_index = matches[-1].item()
+    else:
+        raise(Exception("The object is not repeated."))
+    
+    mask = np.zeros((tokens.size(1), tokens.size(1)))
+
+    mask[-1, last_index] = 1
+
+    return torch.tril(torch.as_tensor(mask).float())
+
+
+def get_name_mover_head_detection_pattern(tokens: torch.Tensor, ioi_label) -> torch.Tensor:
+
+    matches = (tokens[0] == ioi_label).nonzero(as_tuple=True)[0]
+
+    if len(matches) > 0:
+        first_index = matches[0].item()
+    else:
+        raise(Exception("The object is not repeated."))
+    
+    mask = np.zeros((tokens.size(1), tokens.size(1)))
+
+    mask[-1, first_index] = 1
+
+    return torch.tril(torch.as_tensor(mask).float())
+
+
 
 def compute_head_attention_similarity_score(
     attention_pattern: torch.Tensor,  # [q_pos k_pos]
@@ -102,6 +136,13 @@ def compute_head_attention_similarity_score(
 
     # abs
 
+    abs_diff = (attention_pattern.squeeze(0) - detection_pattern).abs()
+
+    selected_diffs = abs_diff[detection_pattern == 1.0]
+
+    return 1 - round((selected_diffs.mean()).item(), 3)
+
+    '''
     abs_diff = (attention_pattern - detection_pattern).abs()
     assert (abs_diff - torch.tril(abs_diff).to(abs_diff.device)).sum() == 0
 
@@ -112,3 +153,4 @@ def compute_head_attention_similarity_score(
         abs_diff.fill_diagonal_(0)
 
     return 1 - round((abs_diff.mean() * size).item(), 3)
+    '''

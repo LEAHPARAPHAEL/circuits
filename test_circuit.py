@@ -71,6 +71,7 @@ def test_ioi_circuit(args):
     ioi_inputs = ioi_samples.toks.long()[:, :seq_len - 1]
 
     ioi_labels = ioi_samples.toks.long()[:, seq_len - 1]
+
     ioi_O_labels = ioi_samples.toks.long()[:, template_O_position] ##This is only compatible with a single template running
 
     ioi_dataset = TensorDataset(ioi_inputs, ioi_labels, ioi_O_labels)

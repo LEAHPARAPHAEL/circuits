@@ -11,7 +11,10 @@ import time
 import json
 from compute_abc_data import compute_abc_data
 from tqdm import tqdm
-from detection_utils import get_duplicate_token_head_detection_pattern, get_induction_head_detection_pattern, get_previous_token_head_detection_pattern, compute_head_attention_similarity_score
+from detection_utils import get_duplicate_token_head_detection_pattern, \
+    get_induction_head_detection_pattern, get_previous_token_head_detection_pattern, \
+        get_s_inhibition_head_detection_pattern, compute_head_attention_similarity_score, \
+        get_name_mover_head_detection_pattern
 import matplotlib.pyplot as plt
 from transformers import AutoTokenizer
 
@@ -89,12 +92,12 @@ def detect_heads(args):
                 template_idx=template_index
             )
 
-
+            template_O_position = ioi_samples.O_position
 
             sentence = ioi_samples.sentences[0]
 
             #############################################################################################
-            # Builds the dataset and dataloader
+            # Builds the dataset
             #############################################################################################
 
             seq_len = ioi_samples.toks.shape[1]
@@ -102,7 +105,9 @@ def detect_heads(args):
             print("----------------------------------------------------------------------------------------------------")
             print("Sequence length : ", seq_len)
 
+
             ioi_inputs = ioi_samples.toks.long()[:, :seq_len - 1]
+            ioi_label = ioi_samples.toks.long()[:, seq_len - 1].item()
 
             #############################################################################################
             # Computes the attention weights
@@ -115,6 +120,8 @@ def detect_heads(args):
             attention_weights = model.stop_detection()
             
             log[template_key][str(template_index)]["sentence"] = sentence
+            log[template_key][str(template_index)]["template_O_position"] = template_O_position
+            log[template_key][str(template_index)]["ioi_label"] = ioi_label
             log[template_key][str(template_index)]["tokens"] = ioi_inputs
             log[template_key][str(template_index)]["attention_weights"] = attention_weights
 
@@ -126,24 +133,51 @@ def detect_heads(args):
             previous_token_pattern = get_previous_token_head_detection_pattern(ioi_inputs).to(device)
             duplicate_token_pattern = get_duplicate_token_head_detection_pattern(ioi_inputs).to(device)
             induction_head_pattern = get_induction_head_detection_pattern(ioi_inputs).to(device)
+            s_inhibition_head_pattern = get_s_inhibition_head_detection_pattern(ioi_inputs, template_O_position).to(device)
+            name_mover_head_pattern = get_name_mover_head_detection_pattern(ioi_inputs, ioi_label).to(device)
 
             log[template_key][str(template_index)]["previous_token_pattern"] = previous_token_pattern
             log[template_key][str(template_index)]["duplicate_token_pattern"] = duplicate_token_pattern
             log[template_key][str(template_index)]["induction_head_pattern"] = induction_head_pattern
-
-
+            log[template_key][str(template_index)]["s_inhibition_head_pattern"] = s_inhibition_head_pattern
+            log[template_key][str(template_index)]["name_mover_head_pattern"] = name_mover_head_pattern
 
 
         else:
             previous_token_pattern = log[template_key][str(template_index)]["previous_token_pattern"].to(device) 
             duplicate_token_pattern = log[template_key][str(template_index)]["duplicate_token_pattern"].to(device) 
             induction_head_pattern = log[template_key][str(template_index)]["induction_head_pattern"].to(device) 
+            s_inhibition_head_pattern = log[template_key][str(template_index)]["s_inhibition_head_pattern"].to(device) 
+            name_mover_head_pattern = log[template_key][str(template_index)]["name_mover_head_pattern"].to(device) 
 
             sentence = log[template_key][str(template_index)]["sentence"] 
+            template_O_position = log[template_key][str(template_index)]["template_O_position"] 
+            ioi_label = log[template_key][str(template_index)]["ioi_label"] 
             ioi_inputs = log[template_key][str(template_index)]["tokens"].to(device) 
             attention_weights = log[template_key][str(template_index)]["attention_weights"] 
 
             seq_len = ioi_inputs.shape[1] + 1
+
+
+        #############################################################################################
+        # Loads results log or creates it
+        #############################################################################################      
+         
+        metrics_file = os.path.join(args.results_folder, "heads", f'{ablation_config["name"]}.json')
+
+        if os.path.isfile(metrics_file):
+            metrics = json.load(open(metrics_file, "r"))
+        else:
+            metrics = {}
+
+        if template_key not in metrics :
+            metrics[template_key] = {}
+        
+        if str(template_index) not in metrics[template_key]:
+
+            metrics[template_key][str(template_index)] = {}
+
+    
 
         #############################################################################################
         # Computes the metrics for each head
@@ -151,12 +185,30 @@ def detect_heads(args):
 
         heads_ablation_config = ablation_config["attention_heads"]
 
-        patterns = [previous_token_pattern, duplicate_token_pattern, induction_head_pattern]
+        patterns = [
+            previous_token_pattern, 
+            duplicate_token_pattern, 
+            induction_head_pattern, 
+            s_inhibition_head_pattern,
+            name_mover_head_pattern
+        ]
         
-        pattern_names = ["previous_token_head", "duplicate_token_head", "induction_head"]
+        pattern_names = [
+            "previous_token_head", 
+            "duplicate_token_head", 
+            "induction_head", 
+            "s_inhibition_head",
+            "name_mover_head"
+        ]
+
 
         tokens = tokenizer.convert_ids_to_tokens(ioi_inputs.squeeze(0))
         tokens = [token.replace("Ġ", "") for token in tokens]
+
+        for pattern, pattern_name in zip(patterns, pattern_names):
+            plot_pattern(args, ablation_config["name"], pattern, pattern_name, tokens)
+
+        heads_metrics = metrics[template_key][str(template_index)]
 
         for layer_idx, heads_indices in heads_ablation_config.items():
 
@@ -164,51 +216,62 @@ def detect_heads(args):
 
             for head_idx in heads_indices:
 
-                head_weights = layer_weights[:, head_idx, :seq_len-1, :seq_len-1]
-
                 head_key = f"{layer_idx}-{head_idx}"
 
-                for pattern, pattern_name in zip(patterns, pattern_names):
+                head_weights = layer_weights[:, head_idx, :, :]
 
-                    #mul = compute_head_attention_similarity_score(head_weights, pattern, error_measure = "mul")
-                    abs = compute_head_attention_similarity_score(head_weights, pattern, error_measure = "abs", exclude_bos=False, exclude_current_token=False)
+                if not os.path.isfile(os.path.join(args.plots_folder, f"{ablation_config['name']}_{head_key}")):
+                    plot_pattern(args, ablation_config["name"], head_weights, head_key, tokens)
 
-                    if abs >= args.threshold:
-                        print(f"Head ({head_key}) | {pattern_name} : {abs}")
-                        plot_pattern(args, tokenizer, ablation_config["name"], head_key, head_weights, 
-                                     pattern, pattern_name, tokens)
+                if not head_key in heads_metrics:
+                    heads_metrics[head_key] = {}
+                        
+                    best_pattern_name = None
+                    best_score = 0.
 
-                
+                    for pattern, pattern_name in zip(patterns, pattern_names):
+
+                        #mul = compute_head_attention_similarity_score(head_weights, pattern, error_measure = "mul")
+                        abs = compute_head_attention_similarity_score(head_weights, pattern, error_measure = "abs", exclude_bos=False, exclude_current_token=False)
+
+                        abs = round(abs, 3)
+                        heads_metrics[head_key][pattern_name] = abs
+
+                        if abs > best_score:
+                            best_score = abs
+                            best_pattern_name = pattern_name
+
+                    heads_metrics[head_key]["head_type"] = best_pattern_name
+
+                    print(f"Head ({head_key}) | {best_pattern_name} : {best_score}")
+
+                else:
+                    print(f"Head ({head_key}) | {heads_metrics[head_key]['head_type']} : {heads_metrics[head_key][heads_metrics[head_key]['head_type']]}")
+
+        metrics[template_key][str(template_index)] = heads_metrics
+
+        json.dump(metrics, open(metrics_file, "w"), indent = 4)
+
+
     torch.save(log, detection_path)
 
 
-def plot_pattern(args, tokenizer, circuit_name, head_key, head_weights, pattern, pattern_name, tokens):
+def plot_pattern(args, circuit_name, weights, name, tokens):
 
-    fig, axes = plt.subplots(nrows = 1, ncols = 2, figsize = (14, 7))
+    plt.figure(figsize = (7, 7))
 
-    axes[0].imshow(head_weights.squeeze(0).cpu(), cmap="coolwarm", aspect="auto")
-    axes[0].set_yticks(
+    im = plt.imshow(weights.squeeze(0).cpu(), cmap="coolwarm", aspect="auto")
+    plt.yticks(
         range(len(tokens)), tokens
     )
-    axes[0].set_xticks(
+    plt.xticks(
         range(len(tokens)), tokens, rotation=90
     )
-    axes[0].set_title("Attention weights")
+    plt.title("Attention weights pattern")
 
-    im = axes[1].imshow(pattern.cpu(), cmap="coolwarm", aspect="auto")
-    axes[1].set_yticks(
-        range(len(tokens)), tokens
-    )
-    axes[1].set_xticks(
-        range(len(tokens)), tokens, rotation=90
-    )
-    axes[1].set_title(f"Pattern : {pattern_name}")  
+    plt.colorbar(im, fraction=0.046, pad=0.04)
 
-    fig.colorbar(im, fraction=0.046, pad=0.04)
-    #fig.colorbar()
-    plt.tight_layout()
-
-    plt.savefig(os.path.join(args.plots_folder, f"{circuit_name}_{pattern_name}_({head_key})"))
+    plt.savefig(os.path.join(args.plots_folder, f"{circuit_name}_{name}"))
 
     plt.close()
 
@@ -218,9 +281,9 @@ if __name__ == "__main__":
     parser.add_argument("--detection_folder", type = str, default = "detection", help = "Detection folder")
     parser.add_argument("--plots_folder", type = str, default = "plots", help = "Plots folder")
     parser.add_argument("--checkpoints_folder", type = str, default = "checkpoints", help = "Checkpoints folder")
+    parser.add_argument("--results_folder", type = str, default = "results", help = "Results folder")
     parser.add_argument("--configs_folder", type = str, default = "configs", help = "Configurations folder")
-    parser.add_argument("-c", "--config", type = str, default = "ioi.json", help = "Ablation config file")
-    parser.add_argument("-t", "--threshold", type = float, default = 0.93, help = "Threshold")
+    parser.add_argument("-c", "--config", type = str, default = "ioi_paper_ablation.json", help = "Ablation config file")
 
     args = parser.parse_args()
 
@@ -230,6 +293,8 @@ if __name__ == "__main__":
     os.makedirs(args.configs_folder, exist_ok=True)
     os.makedirs(args.detection_folder, exist_ok=True)
     os.makedirs(args.plots_folder, exist_ok=True)
+    os.makedirs(args.results_folder, exist_ok=True)
+    os.makedirs(os.path.join(args.results_folder, "heads"), exist_ok=True)
 
     detect_heads(args)
 
