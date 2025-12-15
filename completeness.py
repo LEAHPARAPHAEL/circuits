@@ -59,17 +59,17 @@ def make_ablation_configs(circuit_config,set_config,set_name):
     for head in set_config:
         ablated_circuit[str(head[0])].remove(head[1])
         ablated_model[str(head[0])].remove(head[1])
-
+    name = circuit_config['name']
     ablated_circuit_config = {
         "attention_heads": ablated_circuit,
         "ablate_mlp": circuit_config["ablate_mlp"],
-        "name": f"{circuit_config['name']}_circuit_ablated_set={set_name}"
+        "name": f"{name}_circuit_ablated_set={set_name}"
     }
 
     ablated_model_config = {
         "attention_heads": ablated_model,
         "ablate_mlp": circuit_config["ablate_mlp"],
-        "name": f"{circuit_config['name']}_model_ablated_set={set_name}"
+        "name": f"{name}_model_ablated_set={set_name}"
     }
 
     return ablated_circuit_config, ablated_model_config
@@ -94,17 +94,16 @@ def generate_random_ablation_set(ablation_config, p):
     ##The random config is caracterized by it's signature
     ##0's when the head is removed, 1's when it is kept
     ## the order is the one when reading the circuit config in order
-
+    name = ablation_config["name"]
     random_config = {
         "attention_heads": random_circuit,
         "ablate_mlp": ablation_config["ablate_mlp"],
-        "name": f"{ablation_config["name"]}_circuit_ablated_{signature}"
+        "name": f"{name}_circuit_ablated_{signature}"
     }
-
     random_ablated_model_config = {
         "attention_heads": model_with_random_ablation,
         "ablate_mlp": ablation_config["ablate_mlp"],
-        "name": f"{ablation_config["name"]}_model_ablated_{signature}"
+        "name": f"{name}_model_ablated_{signature}"
     }
     return random_config, random_ablated_model_config,signature, kept_heads , ablated_heads
 
