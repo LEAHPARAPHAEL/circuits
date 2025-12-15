@@ -24,7 +24,8 @@ minimality:
 
 completeness:
 	python completeness.py \
-		--ablation_set_type "random" \
+		--probabilities 0.1 0.3 \
+		--num_sets 5
 
 
 ########################################
