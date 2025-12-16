@@ -24,8 +24,8 @@ minimality:
 
 completeness:
 	python completeness.py \
-		--probabilities 0.1 0.3 \
-		--num_sets 5
+		--ablation_set_type set \
+		--completeness_config adversarial 
 
 
 ########################################
