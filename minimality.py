@@ -16,7 +16,8 @@ import ast
 import copy
 
 ##Our functions
-from ioi_task import run_ioi_task
+from ioi_task import run_ioi_task, setup_ioi_task, run_comparison_on_two_circuits
+
 
 def config_compatibility(minimality_sets_config,circuit):
     
@@ -60,84 +61,16 @@ def build_minimality_ablation_configs(circuit_config,minimality_set,head_to_eval
 
 def compute_minimality(args):
 
-    size = args.size
-    device = args.device
-
-    #############################################################################################
-    # Builds the IOI dataset
-    #############################################################################################
-
-    ioi_samples = IOIDataset(
-        prompt_type=args.prompt_type,
-        N=size,
-        nb_templates=args.num_templates,
-        seed = 0,
-        template_idx=args.template_index
-    )
-
-    print("----------------------------------------------------------------------------------------------------")
-    print("A few samples from the IOI dataset  : ")
-    for sentence in ioi_samples.sentences[:5]:
-        print(sentence)
-    print("----------------------------------------------------------------------------------------------------")
-
-
-    #############################################################################################
-    # Loads the sums over the ABC dataset.
-    #############################################################################################
-
-    abc_path = os.path.join(args.checkpoints_folder, f"abc_{args.prompt_type}_")
-    template_key = f"T={args.template_index}" if args.num_templates == 1 else f"N={args.num_templates}"
-    abc_path += template_key
-
-    template_O_position = ioi_samples.O_position
-
-    if not os.path.isfile(abc_path):
-        print("----------------------------------------------------------------------------------------------------")
-        print("ABC data not found. Fall back to full computation.")
-        compute_abc_data(args)
-
-    abc_data = torch.load(abc_path, map_location = device)
-    print(f"Successfully loaded previous ABC means from {abc_path}")
-
-
-    #############################################################################################
-    # Builds the dataset and dataloader
-    #############################################################################################
-
-    seq_len = ioi_samples.toks.shape[1]
-
-    print("----------------------------------------------------------------------------------------------------")
-    print("Sequence length : ", seq_len)
-
-    ioi_inputs = ioi_samples.toks.long()[:, :seq_len - 1]
-
-    ioi_labels = ioi_samples.toks.long()[:, seq_len - 1]
-    ioi_O_labels = ioi_samples.toks.long()[:, template_O_position] ##This is only compatible with a single template running
-
-    ioi_dataset = TensorDataset(ioi_inputs, ioi_labels, ioi_O_labels)
-
-    loader = DataLoader(ioi_dataset, batch_size = args.batch_size, shuffle = False)
-
-    #############################################################################################
-    # Builds the model
-    #############################################################################################^
-    start_time = time.time()
-    model = AblatableGPT2Model.from_pretrained("gpt2")
-    print(f"Loaded GPT2 model: total time {time.time() - start_time:.2f} seconds")
-    model.to(device)
-    model.eval()
-
-    criterion = nn.CrossEntropyLoss(reduction = "sum")
+    model, abc_data, loader, criterion, template_key = setup_ioi_task(args)
 
     #############################################################################################
     # Loads the ablation config
     #############################################################################################
 
-    ablation_config_path = os.path.join(args.configs_folder, args.config)
+    circuit_config_path = os.path.join(args.configs_folder, args.config)
 
-    if os.path.isfile(ablation_config_path):
-        ablation_config = json.load(open(ablation_config_path, "r"))
+    if os.path.isfile(circuit_config_path):
+        circuit_config = json.load(open(circuit_config_path, "r"))
     else:
         raise(FileNotFoundError("The specified config file does not exist."))
 
@@ -155,7 +88,7 @@ def compute_minimality(args):
         raise(FileNotFoundError(f"The specified minimality config file does not exist {minimality_sets_config_path}."))
 
     try:
-        assert config_compatibility(minimality_sets_config,ablation_config["attention_heads"])
+        assert config_compatibility(minimality_sets_config,circuit_config["attention_heads"])
     except:
         raise(ValueError("The minimality sets config is not compatible with the ablation config."))
 
@@ -167,20 +100,21 @@ def compute_minimality(args):
         # Builds the circuit
         #############################################################################################
 
-        ablation_config_with, ablation_config_without = build_minimality_ablation_configs(ablation_config,minimality_sets[head_to_evaluate],head_to_evaluate)
+        ablation_config_with, ablation_config_without = build_minimality_ablation_configs(circuit_config,minimality_sets[head_to_evaluate],head_to_evaluate)
 
-        model.ablate(abc_data, ablation_config_without)
-        minimality_circuit_name = ablation_config_without["name"] + "_" + head_to_evaluate + "_minimality_set_without"
-        log_without = run_ioi_task(model, loader, criterion, device, args, size, template_key,minimality_circuit_name)
+        log_with,log_without = run_comparison_on_two_circuits(ablation_config_with,ablation_config_without, model, abc_data, loader, criterion, args.device, args, args.size, template_key,circuit_name=circuit_config["name"])
+#        model.ablate(abc_data, ablation_config_without)
+        #minimality_circuit_name = ablation_config_without["name"] + "_" + head_to_evaluate + "_minimality_set_without"
+        #log_without = run_ioi_task(model, loader, criterion, args.device, args, args.size, template_key,minimality_circuit_name)
 
-        model.ablate(abc_data, ablation_config_with)
-        minimality_circuit_name = ablation_config_with["name"] + "_" + head_to_evaluate + "_minimality_set_with"
-        log_with = run_ioi_task(model, loader, criterion, device, args, size, template_key,minimality_circuit_name)
+        #model.ablate(abc_data, ablation_config_with)
+        #minimality_circuit_name = ablation_config_with["name"] + "_" + head_to_evaluate + "_minimality_set_with"
+        #log_with = run_ioi_task(model, loader, criterion, args.device, args, args.size, template_key,minimality_circuit_name)
 
-        print("Minimality results for head ", head_to_evaluate)
         difference_without = log_without[args.prompt_type][template_key]["Logit difference"]
         difference_with = log_with[args.prompt_type][template_key]["Logit difference"]
-        difference_in_difference = abs(difference_with - difference_without)
+        difference_in_difference = difference_with - difference_without
+        print("Minimality results for head ", head_to_evaluate)
         print("Without head : ", difference_without)
         print("With head : ", difference_with)
         print("Difference in logit difference : ", difference_in_difference)
@@ -189,8 +123,8 @@ def compute_minimality(args):
         print("A so far : ", A)
 
         minimality_log[head_to_evaluate] = {
-            "Logit difference without head" : difference_without,
-            "Logit difference with head" : difference_with,
+            "without_head_log" : log_without,
+            "with_head_log" : log_with,
             "Difference in logit difference" : difference_in_difference
         }
     # Saves the minimality results

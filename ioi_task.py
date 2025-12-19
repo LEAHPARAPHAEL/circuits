@@ -1,6 +1,82 @@
 import os
 import torch
 import json
+import time
+
+from ioi_dataset import IOIDataset
+from torch.utils.data import TensorDataset, DataLoader
+from model import AblatableGPT2Model
+import torch.nn as nn
+
+def setup_ioi_task(args):
+    #############################################################################################
+    # Builds the IOI dataset
+    #############################################################################################
+
+    ioi_samples = IOIDataset(
+        prompt_type=args.prompt_type,
+        N=args.size,
+        nb_templates=args.num_templates,
+        seed = 0,
+        template_idx=args.template_index
+    )
+
+    print("----------------------------------------------------------------------------------------------------")
+    print("A few samples from the IOI dataset  : ")
+    for sentence in ioi_samples.sentences[:5]:
+        print(sentence)
+    print("----------------------------------------------------------------------------------------------------")
+
+
+    #############################################################################################
+    # Loads the sums over the ABC dataset.
+    #############################################################################################
+
+    abc_path = os.path.join(args.checkpoints_folder, f"abc_{args.prompt_type}_")
+    template_key = f"T={args.template_index}" if args.num_templates == 1 else f"N={args.num_templates}"
+    abc_path += template_key
+
+    template_O_position = ioi_samples.O_position
+
+    if not os.path.isfile(abc_path):
+        print("----------------------------------------------------------------------------------------------------")
+        print("ABC data not found. Fall back to full computation.")
+        compute_abc_data(args)
+
+    abc_data = torch.load(abc_path, map_location = args.device)
+    print(f"Successfully loaded previous ABC means from {abc_path}")
+
+
+    #############################################################################################
+    # Builds the dataset and dataloader
+    #############################################################################################
+
+    seq_len = ioi_samples.toks.shape[1]
+
+    print("----------------------------------------------------------------------------------------------------")
+    print("Sequence length : ", seq_len)
+
+    ioi_inputs = ioi_samples.toks.long()[:, :seq_len - 1]
+
+    ioi_labels = ioi_samples.toks.long()[:, seq_len - 1]
+    ioi_O_labels = ioi_samples.toks.long()[:, template_O_position] ##This is only compatible with a single template running
+
+    ioi_dataset = TensorDataset(ioi_inputs, ioi_labels, ioi_O_labels)
+
+    loader = DataLoader(ioi_dataset, batch_size = args.batch_size, shuffle = False)
+
+    #############################################################################################
+    # Builds the model
+    #############################################################################################^
+    start_time = time.time()
+    model = AblatableGPT2Model.from_pretrained("gpt2")
+    print(f"Loaded GPT2 model: total time {time.time() - start_time:.2f} seconds")
+    model.to(args.device)
+    model.eval()
+
+    criterion = nn.CrossEntropyLoss(reduction = "sum")
+    return model, abc_data, loader, criterion, template_key
+
 
 
 def setup_dictionary(args, template_key,circuit_name):
@@ -20,9 +96,6 @@ def setup_dictionary(args, template_key,circuit_name):
     else:
         do_need_to_compute = False
     return log, results_path, do_need_to_compute
-
-
-
 
 def run_ioi_task(model, loader, criterion, device, args, size, template_key,circuit_name):
 
@@ -80,4 +153,30 @@ def run_ioi_task(model, loader, criterion, device, args, size, template_key,circ
         print("Retrieving results from previous computations.")
     print(f'{circuit_name} metrics on {log[args.prompt_type][template_key]["Count"]} samples | Loss : {log[args.prompt_type][template_key]["Loss"]:.4f} | Accuracy : {log[args.prompt_type][template_key]["Accuracy"]:.2f} | Logit difference : {log[args.prompt_type][template_key]["Logit difference"]:.2f}"')
     return log
+
+def run_comparison_on_two_circuits(circuit_1, circuit_2, model, abc_data, loader, criterion, device, args, size, template_key,circuit_name):
+    #circuit1 use to be ablated model config
+    #circuit2 use to be ablated circuit config
+
+    #############################################################################################
+    # Run the IOI task on the ablated model 
+    #############################################################################################^A
+
+    model.ablate(abc_data, circuit_1)
+    log1 = run_ioi_task(model, loader, criterion, device, args, size, template_key, circuit_name=circuit_1["name"])
+
+    #############################################################################################
+    # Run the IOI task on the ablated circuit 
+    #############################################################################################^A
+
+    model.ablate(abc_data, circuit_2)
+    log2 = run_ioi_task(model, loader, criterion, device, args, size, template_key, circuit_name=circuit_2["name"])
+
+    #############################################################################################
+    # Store the results of this random ablation
+    #############################################################################################^A
+
+    return log1,log2 
+
+
 

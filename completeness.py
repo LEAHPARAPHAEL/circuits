@@ -1,11 +1,7 @@
-from model import AblatableGPT2Model
 import argparse
 import torch
-from ioi_dataset import IOIDataset
 import os
-from torch.utils.data import TensorDataset, DataLoader
 from glob import glob
-import torch.nn as nn
 import torch.nn.functional as F
 import time
 import json
@@ -17,37 +13,7 @@ import copy
 import numpy as np
 
 ##Our functions
-from ioi_task import run_ioi_task
-
-
-def run_comparison_task(ablated_model_config, ablated_circuit_config, model, abc_data, loader, criterion, device, args, size, template_key,circuit_name):
-
-    #############################################################################################
-    # Run the IOI task on the ablated model 
-    #############################################################################################^A
-
-    model.ablate(abc_data, ablated_model_config)
-    ablated_model_log = run_ioi_task(model, loader, criterion, device, args, size, template_key, circuit_name=ablated_model_config["name"])
-
-    #############################################################################################
-    # Run the IOI task on the ablated circuit 
-    #############################################################################################^A
-
-    model.ablate(abc_data, ablated_circuit_config)
-    ablated_circuit_log = run_ioi_task(model, loader, criterion, device, args, size, template_key, circuit_name=ablated_circuit_config["name"])
-
-    #############################################################################################
-    # Store the results of this random ablation
-    #############################################################################################^A
-
-    completeness_score = ablated_model_log[args.prompt_type][template_key]["Logit difference"] - ablated_circuit_log[args.prompt_type][template_key]["Logit difference"]
-    exp_results = {
-        "ablated_model_difference": ablated_model_log[args.prompt_type][template_key]["Logit difference"],
-        "ablated_circuit_difference": ablated_circuit_log[args.prompt_type][template_key]["Logit difference"],
-        "completeness_score": completeness_score
-    }
-
-    return exp_results
+from ioi_task import run_ioi_task,run_comparison_on_two_circuits, setup_ioi_task
 
 
 
@@ -74,8 +40,8 @@ def make_ablation_configs(circuit_config,set_config,set_name):
 
     return ablated_circuit_config, ablated_model_config
 
-def generate_random_ablation_set(ablation_config, p):
-    random_circuit = copy.deepcopy(ablation_config["attention_heads"])
+def generate_random_ablation_set(circuit_config, p):
+    random_circuit = copy.deepcopy(circuit_config["attention_heads"])
     model_with_random_ablation = {str(i): list(range(12)) for i in range(12)}
     kept_heads = []
     signature = ""
@@ -94,15 +60,15 @@ def generate_random_ablation_set(ablation_config, p):
     ##The random config is caracterized by it's signature
     ##0's when the head is removed, 1's when it is kept
     ## the order is the one when reading the circuit config in order
-    name = ablation_config["name"]
+    name = circuit_config["name"]
     random_config = {
         "attention_heads": random_circuit,
-        "ablate_mlp": ablation_config["ablate_mlp"],
+        "ablate_mlp": circuit_config["ablate_mlp"],
         "name": f"{name}_circuit_ablated_{signature}"
     }
     random_ablated_model_config = {
         "attention_heads": model_with_random_ablation,
-        "ablate_mlp": ablation_config["ablate_mlp"],
+        "ablate_mlp": circuit_config["ablate_mlp"],
         "name": f"{name}_model_ablated_{signature}"
     }
     return random_config, random_ablated_model_config,signature, kept_heads , ablated_heads
@@ -110,84 +76,16 @@ def generate_random_ablation_set(ablation_config, p):
 def compute_completeness(args):
     np.random.seed(42)
 
-    size = args.size
-    device = args.device
-
-    #############################################################################################
-    # Builds the IOI dataset
-    #############################################################################################
-
-    ioi_samples = IOIDataset(
-        prompt_type=args.prompt_type,
-        N=size,
-        nb_templates=args.num_templates,
-        seed = 0,
-        template_idx=args.template_index
-    )
-
-    print("----------------------------------------------------------------------------------------------------")
-    print("A few samples from the IOI dataset  : ")
-    for sentence in ioi_samples.sentences[:5]:
-        print(sentence)
-    print("----------------------------------------------------------------------------------------------------")
-
-
-    #############################################################################################
-    # Loads the sums over the ABC dataset.
-    #############################################################################################
-
-    abc_path = os.path.join(args.checkpoints_folder, f"abc_{args.prompt_type}_")
-    template_key = f"T={args.template_index}" if args.num_templates == 1 else f"N={args.num_templates}"
-    abc_path += template_key
-
-    template_O_position = ioi_samples.O_position
-
-    if not os.path.isfile(abc_path):
-        print("----------------------------------------------------------------------------------------------------")
-        print("ABC data not found. Fall back to full computation.")
-        compute_abc_data(args)
-
-    abc_data = torch.load(abc_path, map_location = device)
-    print(f"Successfully loaded previous ABC means from {abc_path}")
-
-
-    #############################################################################################
-    # Builds the dataset and dataloader
-    #############################################################################################
-
-    seq_len = ioi_samples.toks.shape[1]
-
-    print("----------------------------------------------------------------------------------------------------")
-    print("Sequence length : ", seq_len)
-
-    ioi_inputs = ioi_samples.toks.long()[:, :seq_len - 1]
-
-    ioi_labels = ioi_samples.toks.long()[:, seq_len - 1]
-    ioi_O_labels = ioi_samples.toks.long()[:, template_O_position] ##This is only compatible with a single template running
-
-    ioi_dataset = TensorDataset(ioi_inputs, ioi_labels, ioi_O_labels)
-
-    loader = DataLoader(ioi_dataset, batch_size = args.batch_size, shuffle = False)
-
-    #############################################################################################
-    # Builds the model
-    #############################################################################################^
-    start_time = time.time()
-    model = AblatableGPT2Model.from_pretrained("gpt2")
-    print(f"Loaded GPT2 model: total time {time.time() - start_time:.2f} seconds")
-    model.to(device)
-    model.eval()
-
-    criterion = nn.CrossEntropyLoss(reduction = "sum")
+    model, abc_data, loader, criterion, template_key = setup_ioi_task(args)
 
     #############################################################################################
     # Load the circuit config
     #############################################################################################^
 
-    ablation_config_path = os.path.join(args.configs_folder, args.config)
+    circuit_config_path = os.path.join(args.configs_folder, args.config)
 
-    if os.path.isfile(ablation_config_path):
-        ablation_config = json.load(open(ablation_config_path, "r"))
+    if os.path.isfile(circuit_config_path):
+        circuit_config = json.load(open(circuit_config_path, "r"))
     else:
         raise(FileNotFoundError("The specified config file does not exist."))
 
@@ -213,7 +111,7 @@ def compute_completeness(args):
             # Run comparative exps
             #############################################################################################^
 
-            exp_results = run_comparison_task(random_ablated_model_config, random_circuit_config, model, abc_data, loader, criterion, device, args, size, template_key,circuit_name=ablation_config["name"])
+            exp_results = run_comparison_task(random_ablated_model_config, random_circuit_config, model, abc_data, loader, criterion, args.device, args, args.size, template_key,circuit_name=ablation_config["name"])
             completeness_score = exp_results["completeness_score"]
 
             completeness_log[signature] = exp_results
@@ -233,15 +131,25 @@ def compute_completeness(args):
         for set_name in completeness_config.keys():
             set_config = completeness_config[set_name]
 
-            ablated_circuit_config, ablated_model_config = make_ablation_configs(ablation_config,set_config,set_name)
-            exp_results = run_comparison_task(ablated_model_config, ablated_circuit_config, model, abc_data, loader, criterion, device, args, size, template_key,circuit_name=ablation_config["name"])
+            ablated_circuit_config, ablated_model_config = make_ablation_configs(circuit_config,set_config,set_name)
+
+            ablated_model_log, ablated_circuit_log = run_comparison_on_two_circuits(ablated_model_config, ablated_circuit_config, model, abc_data, loader, criterion, args.device, args, args.size, template_key,circuit_name=circuit_config["name"])
+
+            completeness_score = ablated_model_log[args.prompt_type][template_key]["Logit difference"] - ablated_circuit_log[args.prompt_type][template_key]["Logit difference"]
+
+            exp_results = {
+                "abalated_model_results": ablated_model_log,
+                "abalated_circuit_results": ablated_circuit_log,
+                "completeness_score": completeness_score
+            }
+
             completeness_log[set_name] = exp_results
 
     #############################################################################################
     # Store the results
     #############################################################################################^A
 
-    completeness_log["name"] = ablation_config["name"]
+    completeness_log["name"] = circuit_config["name"]
     completeness_log["ablation_set_type"] = args.ablation_set_type
 
     completeness_results_path = os.path.join(args.results_folder, f'completeness_{args.prompt_type}_{template_key}_type={args.ablation_set_type}_{set_key}.json')
